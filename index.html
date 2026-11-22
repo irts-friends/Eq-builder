@@ -960,7 +960,7 @@ East Central Railway (ECR), Samastipur, No Sr DCM listed,
     var boardingAtVal = $('boardingAt').value.trim();
     var lines = [];
     lines.push('Respected Sir/Ma\'am,', '');
-    lines.push('Kindly help me with confirmation of following Emergency Quota (EQ) request.', '');
+    lines.push('I would be grateful for your kind assistance in confirming the following Emergency Quota (EQ) request:', '');
     lines.push('*EQ details:*', '');
     lines.push('PNR: ' + v('pnr', 'PNR'));
     lines.push('Train No./Name: ' + v('train', 'Train'));
@@ -981,13 +981,13 @@ East Central Railway (ECR), Samastipur, No Sr DCM listed,
     var c = contactValue();
     lines.push('Contact No.: ' + (c || '⟦Contact number⟧'));
     lines.push('Current Status: ' + v('status', 'Current status'), '');
-    lines.push('Thank you for your kind support.', '');
     lines.push('Reference by:');
     var rn = $('refName').value;
     if (rn === '__other__') rn = $('refOther').value.trim();
     lines.push('Name: ' + (rn || '⟦Your name⟧'));
     var b = $('batch').value;
     lines.push('Service: IRMS (Traffic) ' + (b || '⟦Batch⟧') + ' Batch');
+    lines.push('\nThank you for your valuable time and kind assistance.', '');
     return lines.join('\n');
   }
 
