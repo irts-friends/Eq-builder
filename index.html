@@ -1,0 +1,420 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<title>EQ Request Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-MQ285D5C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>EQ Request Builder</h1>
+      <p>Upload a ticket PDF or enter a PNR, fill missing details, and get a ready Emergency Quota request.</p>
+    </div>
+    <nav class="tabs" aria-label="Sections">
+      <button type="button" id="tabCreate" aria-current="page">Create request</button>
+      <button type="button" id="tabVerify" aria-current="false">Verify request</button>
+    </nav>
+  </header>
+
+  <div class="cols" id="viewCreate">
+    <div class="stack">
+      <section class="card">
+        <h2>1 &middot; Get the ticket details</h2>
+
+        <div class="pdfbox" style="margin-bottom: 0;">
+          <label for="pdfFile">Upload ticket PDF <span class="muted">(optional)</span></label>
+          <input type="file" id="pdfFile" accept="application/pdf,.pdf">
+          <div class="status" id="pdfStatusRow" hidden>
+            <span class="chip" id="pdfChip">Reading PDF…</span>
+            <button type="button" class="linkbtn" id="clearPdf">Remove PDF</button>
+          </div>
+        </div>
+
+        <div class="or-divider" role="separator" aria-label="or"><span>or</span></div>
+
+        <div class="field"><label for="pnr">Enter PNR number</label><input id="pnr" class="mono" inputmode="numeric" maxlength="10" placeholder="10-digit PNR" autocomplete="off"></div>
+
+        <div class="sms-collapse-bar" id="smsToggleBar" hidden>
+          <span id="smsToggleLabel">139 SMS options minimized</span>
+          <button type="button" class="linkbtn" id="toggleSmsBtn" aria-expanded="false">Show 139 SMS section</button>
+        </div>
+
+        <div id="smsSection">
+          <div class="sms-collapse-bar" id="smsPromptToggleBar" hidden>
+            <span>Send SMS to 139 minimized (reply pasted below)</span>
+            <button type="button" class="linkbtn" id="toggleSmsPromptBtn" aria-expanded="false">Show SMS prompt</button>
+          </div>
+          <div class="smsbox" id="smsbox" hidden>
+            <p class="hint">Send this SMS to <strong>139</strong> for live status:</p>
+            <p class="smstext mono" id="smsText"></p>
+            <div class="actions">
+              <a class="btn" id="smsLink" href="#">Open SMS app</a>
+            </div>
+            <p class="hint">If your SMS app does not open, send the text above to 139 manually and paste the reply below.</p>
+          </div>
+          <label for="sms" class="gap">Paste the reply from 139</label>
+          <textarea id="sms" spellcheck="false" placeholder="Long-press here and paste the SMS reply from 139"></textarea>
+          <div class="status">
+            <span class="chip" id="parseChip">Waiting for a message</span>
+            <span><button type="button" class="linkbtn" id="sample">Try a sample</button><button type="button" class="linkbtn" id="clearSms">Clear all</button></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2 &middot; Journey details</h2>
+        <div class="grid">
+          <div class="field wide"><label for="train">Train No./Name</label><input id="train" autocomplete="off"></div>
+          <div class="field"><label for="date">Date of journey</label><input id="date" class="mono" placeholder="DD-MM-YYYY" autocomplete="off"></div>
+          <div class="field"><label for="cls">Class</label><input id="cls" class="mono" autocomplete="off"></div>
+          <div class="field"><label for="bookedFrom">Booked From</label><input id="bookedFrom" class="mono" autocomplete="off"></div>
+          <div class="field"><label for="boardingAt">Boarding At</label><input id="boardingAt" class="mono" autocomplete="off"></div>
+          <div class="field"><label for="to">To</label><input id="to" class="mono" autocomplete="off"></div>
+          <div class="field wide"><label for="status">Current status</label><input id="status" class="mono" autocomplete="off"><p class="hint">One entry per passenger, filled from the message or ticket.</p></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3 &middot; Details to add</h2>
+        <div class="grid">
+          <div class="field"><label for="berths">Berths required</label>
+            <select id="berths"></select>
+            <p class="hint" id="berthHint">Set automatically from the passengers in the ticket or reply.</p>
+          </div>
+          <div class="field"><label for="contact">Contact number</label><input id="contact" class="mono" inputmode="tel" placeholder="10-digit mobile" autocomplete="off"><p class="hint err" id="contactHint" hidden>Enter a 10-digit mobile number.</p></div>
+        </div>
+        <div class="pax" id="pax"></div>
+      </section>
+
+      <section class="card">
+        <h2>4 &middot; Reference</h2>
+        <div class="grid">
+          <div class="field"><label for="batch">IRMS (Traffic) batch</label>
+            <select id="batch">
+              <option value="">Select batch</option>
+              <option>2022</option><option>2023</option><option>2024</option><option>2025</option>
+            </select>
+          </div>
+          <div class="field"><label for="refName">Your name</label>
+            <select id="refName" disabled><option value="">Select batch first</option></select>
+          </div>
+          <div class="field wide"><label for="postedAs">Posted as <span class="muted">(optional)</span></label>
+            <input id="postedAs" placeholder="e.g. AOM / LKO" autocomplete="off">
+          </div>
+          <div class="field wide" id="refOtherBox" hidden>
+            <label for="refOther">Your full name</label>
+            <input id="refOther" autocomplete="name">
+            <p class="hint">Your name is not on the officer list yet, so type it here.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="preview">
+      <section class="card">
+        <h2>Message preview</h2>
+        <div class="bubble" id="bubble" aria-live="polite"></div>
+        <div class="status"><span class="chip" id="readyChip"></span></div>
+        <div class="actions">
+          <button type="button" class="btn" id="copy">Copy message</button>
+          <a class="btn alt" id="wa" href="#" target="_blank" rel="noopener">Open in WhatsApp</a>
+          <button type="button" class="btn wide" id="dcmBtn" aria-expanded="false" disabled>Send to SR DCM</button>
+        </div>
+        <textarea id="fallback" readonly aria-label="Message text to copy"></textarea>
+        <div class="dcm" id="dcmPanel" hidden>
+          <h2>Send to SR DCM</h2>
+          <div class="grid">
+            <div class="field"><label for="dcmZone">Zone</label><select id="dcmZone"></select></div>
+            <div class="field"><label for="dcmDiv">Division</label><select id="dcmDiv" disabled></select></div>
+          </div>
+          <div class="dcmresult" id="dcmResult"></div>
+          <p class="hint">Numbers are taken from the Indian Railway Officers CUG Directory and may be out of date. If a message does not reach the officer, check the number.</p>
+        </div>
+      </section>
+      <footer>Everything stays in your browser. Only your name, batch, and posted-as details are remembered on this device.</footer>
+    </aside>
+  </div>
+
+  <div class="cols" id="viewVerify" hidden>
+    <div class="stack">
+      <section class="card">
+        <h2>Paste the request</h2>
+        <label for="reqText">Request received from a batchmate</label>
+        <textarea id="reqText" spellcheck="false" placeholder="Paste the complete request message here"></textarea>
+      </section>
+    </div>
+    <aside class="preview">
+      <section class="card">
+        <h2>Result</h2>
+        <div class="verdict" id="verdict">Paste a request to check it.</div>
+        <dl class="det" id="details"></dl>
+        <p class="hint" id="rosterInfo"></p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<script type="text/plain" id="rosterData">
+# IRMS (Traffic) officer list. One officer per line as: Name, Batch
+# Lines starting with # are ignored.
+# updated: 22-11-2026
+Pranjal Jain, 2022
+Utkarsh Tripathi, 2022
+Aakanksha Singh, 2022
+Tushar Sharma, 2022
+Rashida Khatoon, 2022
+Shubhratosh Sharma, 2022
+Romil Dwivedi, 2022
+Kshitij Verma, 2022
+Akanksha Jha, 2022
+Amitesh Rathi, 2022
+Rajat Singh, 2022
+Divyanshu Goel, 2022
+Kritika Mishra, 2022
+Archisha Bhattacharjee, 2022
+Akansha Gupta, 2022
+Ishan Agarwal, 2022
+Akshat Jain, 2022
+Swarnim Bhardwaj, 2022
+Ankit Pathak, 2022
+Ria Himmatramka, 2022
+Ankita Singh, 2022
+Alex Abraham P J, 2022
+Shubham Gupta, 2022
+Sonalika Ruchandani, 2022
+Abhishek Kumar Singh, 2022
+Kulkarni Sushant Subhash, 2022
+Prince Varshney, 2022
+Vishal Anand, 2022
+Shubham Patsariya, 2022
+Nirbhay Kumar Shahi, 2022
+Pranav Jetley, 2022
+Sumit Paul, 2022
+Ardra Asok, 2022
+Utkarsh Gaurav, 2022
+Mohan Dan, 2022
+Shrey Singh, 2022
+Shashank Kumar, 2022
+Ranveer Singh, 2022
+Vibhor Bhardwaj, 2022
+Akshaykumar Rajagouda Patil, 2022
+Amit Kumar Yadav, 2022
+Mohd. Imran, 2022
+Kumari Anshu, 2022
+Abhisheel Jaiswal, 2022
+Shashank Pandey, 2022
+Iram Choudhary, 2022
+Virender Kumar Das, 2022
+Rahul Meena, 2022
+Keyurkumar Pargi, 2022
+Anupriya Meena, 2022
+Anup Kumar Bagri, 2022
+Virendra Kumar Meena, 2022
+Vikas Kumar, 2022
+Manas Manu, 2022
+Mangera Kaushik Bhanubhai, 2022
+Vikram Kumar, 2022
+Kajal Raju, 2022
+Bhushan Soni, 2022
+Suvan Sharma, 2023
+Prince Arshdeep Singh Wander, 2023
+Alifa Khan, 2023
+Jai Vats, 2023
+Roopak Sharma, 2023
+Chandreshkumar Shankhala, 2023
+Hitesh Sharma, 2023
+Prachi Rathi, 2023
+Rupali Dixit, 2023
+Abhishek Dange, 2023
+Monika Srivastava, 2023
+Rituraj Sarma, 2023
+Nikhil Kumar Singh, 2023
+Sourav Das, 2023
+Kadumuri Hari Prasad Raju, 2023
+Jayant Garg, 2023
+Raj Vardhan Singh, 2023
+Himanshu Gupta, 2023
+Debasmita Bal, 2023
+Pawan Panday, 2023
+Adesh Sharma, 2023
+Nikita Singh, 2023
+Anshu Kumari, 2023
+Abhay Deep Singh, 2023
+Purnima Suden, 2023
+Pranshu Gupta, 2023
+Vedanshi, 2023
+Saurabh, 2023
+Vasudha Arora, 2023
+Kumud Bartwal, 2023
+Utkarsh Sinha, 2023
+Khyati Goyal, 2023
+Deepsha Bhattacharya, 2023
+Anukriti Tomar, 2023
+Atul Sharma, 2023
+Abhinav Kumar Shukla, 2023
+Bharat Pal Singh, 2023
+Rupam Singh, 2023
+Shubham Shandilya, 2023
+Nishu Tyagi, 2023
+Thejaswini N, 2023
+Dimple Kaushik, 2023
+Nitish Kumar, 2023
+Prabhakar Verma, 2023
+Priyanshu Jain, 2023
+Sanjay Yadav, 2023
+Atif Waquar Ekram Ansari, 2023
+Indumathi K, 2023
+Kshitiz Patel, 2023
+Shubham, 2023
+Rashidali A, 2023
+Sooraj R K, 2023
+Bharti Sahu, 2023
+Ahras A N, 2023
+Sachin Gurjar, 2023
+Gaurav Singh, 2023
+Sreelakshmi K V, 2023
+Ravindra Dan, 2023
+Roshan Prajapat, 2023
+Shiva Yadav, 2023
+Ramnaresh Meena, 2023
+Bhukya Ananth, 2023
+Karthik D, 2023
+Deepak Kumar Meena, 2023
+T Vijayakumar, 2023
+Rishab Prasad, 2023
+Abhishek Meena, 2023
+Sachin Kumar, 2023
+Neeraj Songara, 2023
+Sneha Panna, 2023
+Gaurav Hitesh Temhhurnikar, 2023
+Sant Kumar Meelu, 2023
+Pradeep Goyal, 2023
+Shivani Wasekar, 2023
+Thanuj Kumar K, 2023
+Anurag Kishor Gautam, 2023
+Laxman Meena, 2023
+Bidipto Sarkar, 2023
+Rajesh Kumar, 2023
+Harsh Vardhan Singh, 2023
+Dinash Kumar, 2023
+Nivedita Chandra, 2023
+Vinay Saroha, 2023
+Dev Prabhaker Singh Tomar, 2024
+Asha Kumari Meena, 2024
+Gaurav Singh, 2024
+Manthan Jindal, 2024
+Tanaka D Anand, 2024
+Sadawarte Anand Rajesh, 2024
+Sanagavarapu Sai Bhargava, 2024
+Sachin, 2024
+Muhammed Swalah T A, 2024
+Raja Prabu M, 2024
+Deepak Meena, 2024
+Kunal Haritas, 2024
+Vaibhav Vishal, 2024
+Mihir Raj, 2024
+K Harikrishnan, 2024
+Vinay Soni, 2024
+Akhilesh Kumar Verma, 2024
+</script>
+
+<script type="text/plain" id="dcmData">
+# Sr. DCM contact list from the Indian Railway Officers CUG Directory.
+# One per line as: Zone, Division, Label, 10-digit CUG number. Lines starting with # are ignored.
+Central Railway (CR), Mumbai, SR DCM, 8828119950
+Central Railway (CR), Nagpur, SR DCM, 7219612950
+Central Railway (CR), Bhusawal, Sr.DCM/BSL, 7219611950
+Central Railway (CR), Pune, Sr.DCM, 7219613950
+Central Railway (CR), Solapur, Sr. DCM, 7219614950
+Northern Railway (NR), Ambala, SR.DCM/UMB, 9729539950
+Northern Railway (NR), Ambala, SR.DCM, 9729539901
+Northern Railway (NR), New Delhi, SRDCM, 9717631951
+Northern Railway (NR), Moradabad, SR DCM, 9760534950
+Northern Railway (NR), Lucknow, SR.DCM, 9794833950
+Northern Railway (NR), Firozpur, SR.DCM, 9779233900
+North East Frontier Railway (NFR), Rangiya, SR.DCM, 9957554950
+North East Frontier Railway (NFR), Alipurduar, SR.DCM, 9002052950
+North East Frontier Railway (NFR), Katihar, SR.DCM, 9771441950
+North East Frontier Railway (NFR), Lumding, SR.DCM, 9957553950
+North East Frontier Railway (NFR), Tinsukia, DCM/TSK (no Sr DCM listed), 9957555950
+Eastern Railway (ER), Howrah, SR.DCM, 9002022950
+Eastern Railway (ER), Sealdah, SR.DCM, 9002021950
+Eastern Railway (ER), Maldah, SR.DCM/MLDT, 9002024950
+Eastern Railway (ER), Asansol, SR.D.C.M, 9002023950
+South Eastern Railway (SER), Adra, Sr.DCM, 9002083950
+South Eastern Railway (SER), Chakradharpur, SR.DCM, 9771482950
+South Eastern Railway (SER), Kharagpur, SR.DCM, 9002081950
+South Eastern Railway (SER), Ranchi, SR.DCM, 9771484950
+North Western Railway (NWR), Bikaner, SR/DCM, 9001197950
+North Western Railway (NWR), Jodhpur, SR.DCM, 9001198950
+North Western Railway (NWR), Jaipur, SR.DCM, 9001199950
+North Western Railway (NWR), Ajmer, SR.DCM, 9001196950
+East Coast Railway (ECoR), Waltair, SR.DCM, 8978080950
+East Coast Railway (ECoR), Khurda Road, No Sr DCM listed, 
+East Coast Railway (ECoR), Sambalpur, SR.DCM, 8455886950
+North Eastern Railway (NER), Varanasi, SR DCM, 9794843950
+North Eastern Railway (NER), Izzatnagar, SR.DCM, 9760541950
+North Eastern Railway (NER), Lucknow Junction, SR.DCM, 9794842950
+South Western Railway (SWR), Mysore, SR.DCM, 9731667950
+South Western Railway (SWR), Bangalore, SR.DCM, 9731666950
+South Western Railway (SWR), Hubli, SR.DCM, 9731668950
+Western Railway (WR), Ahmedabad, SR.DCM, 9724093950
+Western Railway (WR), Mumbai Central, SR.DCM, 9004499950
+Western Railway (WR), Vadodara, SR.DCM, 9724091950
+Western Railway (WR), Bhavnagar, DCM/BVP (no Sr DCM listed), 9724097950
+Western Railway (WR), Rajkot, SR.DCM /RJT, 9724094950
+Western Railway (WR), Ratlam, SR.DCM, 9752492950
+Southern Railway (SR), Chennai, SR DCM, 9003061950
+Southern Railway (SR), Madurai, SR.DCM, 9003862950
+Southern Railway (SR), Palghat, SR.DCM, 9746763950
+Southern Railway (SR), Salem, SR.DCM (1 of 2 listed), 9003956950
+Southern Railway (SR), Salem, SR.DCM (2 of 2 listed), 9003956951
+Southern Railway (SR), Tiruchirappalli, SR.DCM, 9003864950
+Southern Railway (SR), Trivandrum, SR.DCM/TVC, 9746769950
+South Central Railway (SCR), Vijayawada, SR.DCM/BZA, 9701373950
+South Central Railway (SCR), Guntur, SR.DCM/GNT, 9701379950
+South Central Railway (SCR), Guntakal, SR.DCM/GTL, 9701374950
+South Central Railway (SCR), Hyderabad, SR.DCM/HYB, 9701372950
+South Central Railway (SCR), Nanded, SR.DCM/NED, 9701359950
+South Central Railway (SCR), Secunderabad, SR.DCM/SC, 9701371950
+North Central Railway (NCR), Allahabad, SR.DCM, 9794837950
+North Central Railway (NCR), Jhansi, SR.DCM, 9794838950
+North Central Railway (NCR), Agra, SR.DCM, 9760536950
+West Central Railway (WCR), Bhopal, SR.DCM, 9752416950
+West Central Railway (WCR), Jabalpur, Sr.DCM, 9752418950
+West Central Railway (WCR), Kota, SR.DCM, 9001017950
+South East Central Railway (SECR), Bilaspur, SR DCM, 9752876950
+South East Central Railway (SECR), Nagpur, SR.DCM, 9730078950
+South East Central Railway (SECR), Raipur, SR.DCM, 9752877950
+East Central Railway (ECR), Sonpur, SR.DCM, 9771429950
+East Central Railway (ECR), Pt. Deen Dayal Upadhyaya, SR.DCM/MGS, 9794848950
+East Central Railway (ECR), Danapur, SRDCM/DNR, 9771449950
+East Central Railway (ECR), Dhanbad, SRDCMDHN, 9771426950
+East Central Railway (ECR), Samastipur, No Sr DCM listed,
+</script>
+
+<section class="trr-wrap" id="trainRouteSection" aria-labelledby="trainRouteHeading">
+  <div class="trr-card">
+    <h2 class="trr-heading" id="trainRouteHeading">Train Route</h2>
+    <div id="trrResults" aria-live="polite"></div>
+  </div>
+</section>
+
+<script src="app.js"></script>
+<script src="train-route.js"></script>
+</body>
+</html>
