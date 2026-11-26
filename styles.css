@@ -572,6 +572,41 @@ footer { margin-top: 18px; color: var(--muted); font-size: 0.78rem; }
 }
 
 /* Official Northern Railway TA Journal A4 sheet preview */
+/* Handwritten blue-pen styling for filled entries on the TA Journal form */
+.ta-handwritten,
+.ta-fill.is-filled,
+table.ta-journal-tbl td.ta-handwritten,
+table.ta-summary-tbl td.ta-handwritten,
+table.ta-journal-tbl tr.ta-total-row td .ta-handwritten {
+  font-family: "Caveat", "Kalam", "Segoe Print", "Bradley Hand", cursive !important;
+  color: #143d99 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.25pt;
+}
+.ta-fill.is-filled {
+  font-size: 11.5pt;
+  padding: 0 4pt;
+}
+table.ta-journal-tbl td.ta-handwritten {
+  font-size: 10.8pt;
+  line-height: 1.08;
+}
+table.ta-journal-tbl td.ta-handwritten.ta-date-cell {
+  font-size: 10pt;
+  line-height: 1.05;
+}
+table.ta-journal-tbl td.ta-handwritten.ta-obj-cell {
+  font-size: 10.6pt;
+  line-height: 1.1;
+}
+table.ta-journal-tbl td.ta-handwritten.ta-rate-formula-cell {
+  font-size: 9.8pt;
+  line-height: 1.05;
+}
+table.ta-summary-tbl td.ta-handwritten {
+  font-size: 11pt;
+}
+
 .ta-paper-scroll {
   overflow-x: auto;
   border: 1px solid var(--line);

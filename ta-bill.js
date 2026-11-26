@@ -1228,6 +1228,19 @@
     );
   }
 
+  function hwCell(contentHtml, extraClass) {
+    var cls = 'ta-handwritten' + (extraClass ? ' ' + extraClass : '');
+    return '<td class="' + cls + '">' + contentHtml + '</td>';
+  }
+
+  function fillSpan(rawVal, fallbackDots) {
+    var trimmed = String(rawVal == null ? '' : rawVal).trim();
+    if (trimmed) {
+      return '<span class="ta-fill is-filled ta-handwritten">' + esc(trimmed) + '</span>';
+    }
+    return '<span class="ta-fill">' + esc(fallbackDots) + '</span>';
+  }
+
   function buildJournalRowHtml(e) {
     var amt = computeEntryAmount(e);
     var rp = splitRsPaise(amt);
@@ -1247,34 +1260,34 @@
     if (e.entryType === 'nontravel') {
       return (
         '<tr>' +
-          '<td class="ta-date-cell">' + dateCellHtml + '</td>' +
+          hwCell(dateCellHtml, 'ta-date-cell') +
           '<td></td>' +
           '<td></td>' +
           '<td></td>' +
           '<td></td>' +
           '<td></td>' +
           '<td></td>' +
-          '<td>' + esc(daysLabel) + '</td>' +
-          '<td class="ta-obj-cell">' + esc(e.object) + '</td>' +
-          '<td class="ta-rate-formula-cell">' + esc(rateCellText) + '</td>' +
-          '<td class="ta-num-cell">' + esc(rp.p) + '</td>' +
+          hwCell(esc(daysLabel), '') +
+          hwCell(esc(e.object), 'ta-obj-cell') +
+          hwCell(esc(rateCellText), 'ta-rate-formula-cell') +
+          hwCell(esc(rp.p), 'ta-num-cell') +
         '</tr>'
       );
     }
 
     return (
       '<tr>' +
-        '<td class="ta-date-cell">' + dateCellHtml + '</td>' +
-        '<td>' + esc(e.train) + '</td>' +
-        '<td>' + esc(e.timeLeft) + '</td>' +
-        '<td>' + esc(e.timeArr) + '</td>' +
-        '<td>' + esc(e.from) + '</td>' +
-        '<td>' + esc(e.to) + '</td>' +
-        '<td>' + esc(e.km) + '</td>' +
-        '<td>' + esc(daysLabel) + '</td>' +
-        '<td class="ta-obj-cell">' + esc(e.object) + '</td>' +
-        '<td class="ta-rate-formula-cell">' + esc(rateCellText) + '</td>' +
-        '<td class="ta-num-cell">' + esc(rp.p) + '</td>' +
+        hwCell(dateCellHtml, 'ta-date-cell') +
+        (e.train ? hwCell(esc(e.train), '') : '<td></td>') +
+        (e.timeLeft ? hwCell(esc(e.timeLeft), '') : '<td></td>') +
+        (e.timeArr ? hwCell(esc(e.timeArr), '') : '<td></td>') +
+        (e.from ? hwCell(esc(e.from), '') : '<td></td>') +
+        (e.to ? hwCell(esc(e.to), '') : '<td></td>') +
+        (e.km ? hwCell(esc(e.km), '') : '<td></td>') +
+        hwCell(esc(daysLabel), '') +
+        (e.object ? hwCell(esc(e.object), 'ta-obj-cell') : '<td class="ta-obj-cell"></td>') +
+        hwCell(esc(rateCellText), 'ta-rate-formula-cell') +
+        hwCell(esc(rp.p), 'ta-num-cell') +
       '</tr>'
     );
   }
@@ -1286,18 +1299,18 @@
   function renderPaperPreview(sortedList, sum) {
     var paper = $('taPaperPreview');
     var railway = $('taRailway').value.trim() || 'Northern Railway (NR)';
-    var dept = $('taDept').value.trim() || '....................';
-    var pfNo = $('taPfNo').value.trim() || '....................';
-    var billUnit = $('taBillUnit').value.trim() || '................';
-    var hq = $('taHq').value.trim() || '..........';
-    var empName = $('taName').value.trim() || '............................................';
-    var month = $('taMonth').value.trim() || '..........';
-    var year = $('taYear').value.trim() || '......';
-    var desig = $('taDesignation').value.trim() || '................';
-    var pay = $('taPay').value.trim() || '............';
-    var level = $('taLevel').value.trim() || '....';
-    var doa = $('taDoa').value.trim() || '..............';
-    var rules = $('taRules').value.trim() || 'As per Extant Rules';
+    var deptRaw = $('taDept').value.trim();
+    var pfNoRaw = $('taPfNo').value.trim();
+    var billUnitRaw = $('taBillUnit').value.trim();
+    var hqRaw = $('taHq').value.trim();
+    var empNameRaw = $('taName').value.trim();
+    var monthRaw = $('taMonth').value.trim();
+    var yearRaw = $('taYear').value.trim();
+    var desigRaw = $('taDesignation').value.trim();
+    var payRaw = $('taPay').value.trim();
+    var levelRaw = $('taLevel').value.trim();
+    var doaRaw = $('taDoa').value.trim() ? formatFullDate($('taDoa').value.trim()) : '';
+    var rulesRaw = $('taRules').value.trim();
     var mode = $('taTravelMode').value || 'Rail';
 
     var p1Cap = 24;
@@ -1319,7 +1332,10 @@
     var journalRp = splitRsPaise(sum.journalTotal);
     var grandRp = splitRsPaise(sum.grandTotal);
     var wordsStr = numberToIndianWords(sum.grandTotal);
-    var certName = $('taName').value.trim() || '............................................';
+
+    var row30Calc = sum.c30 ? ('Rs. ' + sum.dailyRate + ' &times; 30% &times; ' + sum.c30 + ' = ' + sum.amt30.toFixed(2)) : 'Rs. 0.00';
+    var row70Calc = sum.c70 ? ('Rs. ' + sum.dailyRate + ' &times; 70% &times; ' + sum.c70 + ' = ' + sum.amt70.toFixed(2)) : 'Rs. 0.00';
+    var row100Calc = sum.c100 ? ('Rs. ' + sum.dailyRate + ' &times; 100% &times; ' + sum.c100 + ' = ' + sum.amt100.toFixed(2)) : 'Rs. 0.00';
 
     paper.innerHTML =
       // ---- PAGE 1 ----
@@ -1327,10 +1343,10 @@
         '<div class="ta-doc-header">' +
           '<div class="ta-doc-title">' + esc(railway) + '</div>' +
           '<div class="ta-doc-subtitle">Travelling Allowance Journal</div>' +
-          '<p class="ta-meta-line">Dept. <span class="ta-fill">' + esc(dept) + '</span> &nbsp;PF NO. <span class="ta-fill">' + esc(pfNo) + '</span> &nbsp;BILL UNIT NO. <span class="ta-fill">' + esc(billUnit) + '</span> &nbsp;Headquarters- <span class="ta-fill">' + esc(hq) + '</span></p>' +
-          '<p class="ta-meta-line">Journal of duties performed by <span class="ta-fill">' + esc(empName) + '</span> for which allowance for month <span class="ta-fill">' + esc(month) + '</span> year <span class="ta-fill">' + esc(year) + '</span> is claimed.</p>' +
-          '<p class="ta-meta-line">Designation <span class="ta-fill">' + esc(desig) + '</span> &nbsp;Pay <span class="ta-fill">' + esc(pay) + '</span> in Level - <span class="ta-fill">' + esc(level) + '</span> of 7th CPC. &nbsp;Date of Appointment <span class="ta-fill">' + esc(doa) + '</span></p>' +
-          '<p class="ta-meta-line">Rules by which governed <span class="ta-fill">' + esc(rules) + '</span></p>' +
+          '<p class="ta-meta-line">Dept. ' + fillSpan(deptRaw, '....................') + ' &nbsp;PF NO. ' + fillSpan(pfNoRaw, '....................') + ' &nbsp;BILL UNIT NO. ' + fillSpan(billUnitRaw, '................') + ' &nbsp;Headquarters- ' + fillSpan(hqRaw, '..........') + '</p>' +
+          '<p class="ta-meta-line">Journal of duties performed by ' + fillSpan(empNameRaw, '............................................') + ' for which allowance for month ' + fillSpan(monthRaw, '..........') + ' year ' + fillSpan(yearRaw, '......') + ' is claimed.</p>' +
+          '<p class="ta-meta-line">Designation ' + fillSpan(desigRaw, '................') + ' &nbsp;Pay ' + fillSpan(payRaw, '............') + ' in Level - ' + fillSpan(levelRaw, '....') + ' of 7th CPC. &nbsp;Date of Appointment ' + fillSpan(doaRaw, '..............') + '</p>' +
+          '<p class="ta-meta-line">Rules by which governed ' + fillSpan(rulesRaw, '........................................') + '</p>' +
         '</div>' +
         '<table class="ta-journal-tbl">' +
           buildJournalTableHeader() +
@@ -1346,9 +1362,9 @@
           '<tbody>' +
             p2Body +
             '<tr class="ta-total-row">' +
-              '<td colspan="9" class="ta-words-cell">Total (in words):- ( <strong>Rupees ' + esc(wordsStr) + '</strong> ) only</td>' +
-              '<td class="ta-num-cell"><strong>Rs. ' + esc(journalRp.rs) + '</strong></td>' +
-              '<td class="ta-num-cell"><strong>' + esc(journalRp.p) + '</strong></td>' +
+              '<td colspan="9" class="ta-words-cell">Total (in words):- ( <span class="ta-handwritten">Rupees ' + esc(wordsStr) + '</span> ) only</td>' +
+              '<td class="ta-num-cell ta-handwritten">Rs. ' + esc(journalRp.rs) + '</td>' +
+              '<td class="ta-num-cell ta-handwritten">' + esc(journalRp.p) + '</td>' +
             '</tr>' +
           '</tbody>' +
         '</table>' +
@@ -1365,26 +1381,26 @@
           '<tbody>' +
             '<tr>' +
               '<td>30%</td>' +
-              '<td>' + sum.c30 + '</td>' +
-              '<td>Rs. ' + (sum.c30 ? (sum.dailyRate + ' &times; 30% &times; ' + sum.c30 + ' = ' + sum.amt30.toFixed(2)) : '0.00') + '</td>' +
+              '<td class="ta-handwritten">' + sum.c30 + '</td>' +
+              '<td class="ta-handwritten">' + row30Calc + '</td>' +
             '</tr>' +
             '<tr>' +
               '<td>70%</td>' +
-              '<td>' + sum.c70 + '</td>' +
-              '<td>Rs. ' + (sum.c70 ? (sum.dailyRate + ' &times; 70% &times; ' + sum.c70 + ' = ' + sum.amt70.toFixed(2)) : '0.00') + '</td>' +
+              '<td class="ta-handwritten">' + sum.c70 + '</td>' +
+              '<td class="ta-handwritten">' + row70Calc + '</td>' +
             '</tr>' +
             '<tr>' +
               '<td>100%</td>' +
-              '<td>' + sum.c100 + '</td>' +
-              '<td>Rs. ' + (sum.c100 ? (sum.dailyRate + ' &times; 100% &times; ' + sum.c100 + ' = ' + sum.amt100.toFixed(2)) : '0.00') + '</td>' +
+              '<td class="ta-handwritten">' + sum.c100 + '</td>' +
+              '<td class="ta-handwritten">' + row100Calc + '</td>' +
             '</tr>' +
             '<tr>' +
               '<td colspan="2">Total Contingent Amount:-</td>' +
-              '<td>Rs. ' + sum.contingent.toFixed(2) + '</td>' +
+              '<td class="ta-handwritten">Rs. ' + sum.contingent.toFixed(2) + '</td>' +
             '</tr>' +
             '<tr>' +
               '<td colspan="2"><strong>Total Amount Rs.</strong></td>' +
-              '<td><strong>Rs. ' + grandRp.rs + '.' + grandRp.p + '</strong></td>' +
+              '<td class="ta-handwritten"><strong>Rs. ' + grandRp.rs + '.' + grandRp.p + '</strong></td>' +
             '</tr>' +
           '</tbody>' +
         '</table>' +
@@ -1402,9 +1418,9 @@
             '<div>Signature of Officer Claiming T.A.</div>' +
           '</div>' +
           '<p class="ta-duty-cert">' +
-            'I hereby certify that Sh. <span class="ta-fill">' + esc(certName) + '</span> was absent on duty from his head ' +
+            'I hereby certify that Sh. ' + fillSpan(empNameRaw, '............................................') + ' was absent on duty from his head ' +
             'quarter station during the period charged for in the bill on Railway business and that the officer performed the ' +
-            'journey by <strong>' + esc(mode) + '</strong> and was allowed/not allowed free Pass of locomotion at the expense of ' +
+            'journey by <span class="ta-handwritten">' + esc(mode) + '</span> and was allowed/not allowed free Pass of locomotion at the expense of ' +
             'Government local fund of Indian State.' +
           '</p>' +
           '<div class="ta-bottom-sigs">' +
@@ -1516,6 +1532,13 @@
       '.ta-doc-subtitle { text-align: center; font-size: 11.5pt; font-weight: 700; margin-bottom: 6pt; }' +
       '.ta-meta-line { margin: 3pt 0; font-size: 10.5pt; }' +
       '.ta-fill { font-weight: 700; border-bottom: 1px dotted #000; padding: 0 3pt; }' +
+      '.ta-handwritten, .ta-fill.is-filled, table.ta-journal-tbl td.ta-handwritten, table.ta-summary-tbl td.ta-handwritten, table.ta-journal-tbl tr.ta-total-row td .ta-handwritten { font-family: "Caveat", "Kalam", "Segoe Print", "Bradley Hand", cursive !important; color: #143d99 !important; font-weight: 600 !important; letter-spacing: 0.25pt; }' +
+      '.ta-fill.is-filled { font-size: 12pt; padding: 0 4pt; }' +
+      'table.ta-journal-tbl td.ta-handwritten { font-size: 11.2pt; line-height: 1.08; }' +
+      'table.ta-journal-tbl td.ta-handwritten.ta-date-cell { font-size: 10.4pt; line-height: 1.05; }' +
+      'table.ta-journal-tbl td.ta-handwritten.ta-obj-cell { font-size: 11pt; line-height: 1.1; }' +
+      'table.ta-journal-tbl td.ta-handwritten.ta-rate-formula-cell { font-size: 10pt; line-height: 1.05; }' +
+      'table.ta-summary-tbl td.ta-handwritten { font-size: 11.5pt; }' +
       'table.ta-journal-tbl, table.ta-summary-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9pt; }' +
       'table.ta-journal-tbl th, table.ta-journal-tbl td, table.ta-summary-tbl th, table.ta-summary-tbl td { border: 0.75pt solid #000; padding: 2.5pt 3pt; text-align: center; vertical-align: middle; word-wrap: break-word; }' +
       'table.ta-journal-tbl td { height: 21.5pt; }' +
@@ -1540,9 +1563,10 @@
       printWin.document.open();
       printWin.document.write(
         '<!doctype html><html><head><meta charset="utf-8"><title>' + esc(docTitle) + '</title>' +
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Kalam:wght@400;700&display=swap">' +
         '<style>' + printCss + '</style></head><body>' +
         paperHtml +
-        '<script>setTimeout(function () { try { window.focus(); window.print(); } catch (e) {} }, 180);<\/script>' +
+        '<script>setTimeout(function () { try { window.focus(); window.print(); } catch (e) {} }, 350);<\/script>' +
         '</body></html>'
       );
       printWin.document.close();
