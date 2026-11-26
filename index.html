@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<style>:root{color-scheme:light}body{margin:0}[hidden]{display:none!important}</style>
+<title>EQ Request Builder</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@500;600&display=swap">
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<script async src="https://www.googletagmanager.com/gtm.js?id=GTM-MQ285D5C"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+</script>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1 id="appTitle">EQ Request Builder</h1>
+      <p id="appSubtitle">Upload a ticket PDF or enter a PNR, fill missing details, and get a ready Emergency Quota request.</p>
+    </div>
+    <nav class="tabs" aria-label="Sections">
+      <button type="button" id="tabCreate" aria-current="page">Create request</button>
+      <button type="button" id="tabVerify" aria-current="false">Verify request</button>
+      <button type="button" id="tabTaBill" aria-current="false">Prepare TA bill</button>
+    </nav>
+  </header>
+
+  <div class="cols" id="viewCreate">
+    <div class="stack">
+      <section class="card">
+        <h2>1 &middot; Get the ticket details</h2>
+
+        <div class="pdfbox" style="margin-bottom: 0;">
+          <label for="pdfFile">Upload ticket PDF <span class="muted">(optional)</span></label>
+          <input type="file" id="pdfFile" accept="application/pdf,.pdf">
+          <div class="status" id="pdfStatusRow" hidden>
+            <span class="chip" id="pdfChip">Reading PDF…</span>
+            <button type="button" class="linkbtn" id="clearPdf">Remove PDF</button>
+          </div>
+        </div>
+
+        <div class="or-divider" role="separator" aria-label="or"><span>or</span></div>
+
+        <div class="field"><label for="pnr">Enter PNR number</label><input id="pnr" class="mono" inputmode="numeric" maxlength="10" placeholder="10-digit PNR" autocomplete="off"></div>
+
+        <div class="sms-collapse-bar" id="smsToggleBar" hidden>
+          <span id="smsToggleLabel">139 SMS options minimized</span>
+          <button type="button" class="linkbtn" id="toggleSmsBtn" aria-expanded="false">Show 139 SMS section</button>
+        </div>
+
+        <div id="smsSection">
+          <div class="sms-collapse-bar" id="smsPromptToggleBar" hidden>
+            <span>Send SMS to 139 minimized (reply pasted below)</span>
+            <button type="button" class="linkbtn" id="toggleSmsPromptBtn" aria-expanded="false">Show SMS prompt</button>
+          </div>
+          <div class="smsbox" id="smsbox" hidden>
+            <p class="hint">Send this SMS to <strong>139</strong> for live status:</p>
+            <p class="smstext mono" id="smsText"></p>
+            <div class="actions">
+              <a class="btn" id="smsLink" href="#">Open SMS app</a>
+            </div>
+            <p class="hint">If your SMS app does not open, send the text above to 139 manually and paste the reply below.</p>
+          </div>
+          <label for="sms" class="gap">Paste the reply from 139</label>
+          <textarea id="sms" spellcheck="false" placeholder="Long-press here and paste the SMS reply from 139"></textarea>
+          <div class="status">
+            <span class="chip" id="parseChip">Waiting for a message</span>
+            <span><button type="button" class="linkbtn" id="sample">Try a sample</button><button type="button" class="linkbtn" id="clearSms">Clear all</button></span>
+          </div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>2 &middot; Journey details</h2>
+        <div class="grid">
+          <div class="field wide"><label for="train">Train No./Name</label><input id="train" autocomplete="off"></div>
+          <div class="field"><label for="date">Date of journey</label><input id="date" class="mono" placeholder="DD-MM-YYYY" autocomplete="off"></div>
+          <div class="field"><label for="cls">Class</label><input id="cls" class="mono" autocomplete="off"></div>
+          <div class="field"><label for="bookedFrom">Booked From</label><input id="bookedFrom" class="mono" autocomplete="off"></div>
+          <div class="field"><label for="boardingAt">Boarding At</label><input id="boardingAt" class="mono" autocomplete="off"></div>
+          <div class="field"><label for="to">To</label><input id="to" class="mono" autocomplete="off"></div>
+          <div class="field wide"><label for="status">Current status</label><input id="status" class="mono" autocomplete="off"><p class="hint">One entry per passenger, filled from the message or ticket.</p></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>3 &middot; Details to add</h2>
+        <div class="grid">
+          <div class="field"><label for="berths">Berths required</label>
+            <select id="berths"></select>
+            <p class="hint" id="berthHint">Set automatically from the passengers in the ticket or reply.</p>
+          </div>
+          <div class="field"><label for="contact">Contact number</label><input id="contact" class="mono" inputmode="tel" placeholder="10-digit mobile" autocomplete="off"><p class="hint err" id="contactHint" hidden>Enter a 10-digit mobile number.</p></div>
+        </div>
+        <div class="pax" id="pax"></div>
+      </section>
+
+      <section class="card">
+        <h2>4 &middot; Reference</h2>
+        <div class="grid">
+          <div class="field"><label for="batch">IRMS (Traffic) batch</label>
+            <select id="batch">
+              <option value="">Select batch</option>
+              <option>2022</option><option>2023</option><option>2024</option><option>2025</option>
+            </select>
+          </div>
+          <div class="field"><label for="refName">Your name</label>
+            <select id="refName" disabled><option value="">Select batch first</option></select>
+          </div>
+          <div class="field wide"><label for="postedAs">Posted as <span class="muted">(optional)</span></label>
+            <input id="postedAs" placeholder="e.g. AOM / LKO" autocomplete="off">
+          </div>
+          <div class="field wide" id="refOtherBox" hidden>
+            <label for="refOther">Your full name</label>
+            <input id="refOther" autocomplete="name">
+            <p class="hint">Your name is not on the officer list yet, so type it here.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <aside class="preview">
+      <section class="card">
+        <h2>Message preview</h2>
+        <div class="bubble" id="bubble" aria-live="polite"></div>
+        <div class="status"><span class="chip" id="readyChip"></span></div>
+        <div class="actions">
+          <button type="button" class="btn" id="copy">Copy message</button>
+          <a class="btn alt" id="wa" href="#" target="_blank" rel="noopener">Open in WhatsApp</a>
+          <button type="button" class="btn wide" id="dcmBtn" aria-expanded="false" disabled>Send to SR DCM</button>
+        </div>
+        <textarea id="fallback" readonly aria-label="Message text to copy"></textarea>
+        <div class="dcm" id="dcmPanel" hidden>
+          <h2>Send to SR DCM</h2>
+          <div class="grid">
+            <div class="field"><label for="dcmZone">Zone</label><select id="dcmZone"></select></div>
+            <div class="field"><label for="dcmDiv">Division</label><select id="dcmDiv" disabled></select></div>
+          </div>
+          <div class="dcmresult" id="dcmResult"></div>
+          <p class="hint">Numbers are taken from the Indian Railway Officers CUG Directory and may be out of date. If a message does not reach the officer, check the number.</p>
+        </div>
+      </section>
+      <footer>Everything stays in your browser. Only your name, batch, and posted-as details are remembered on this device.</footer>
+    </aside>
+  </div>
+
+  <div class="cols" id="viewVerify" hidden>
+    <div class="stack">
+      <section class="card">
+        <h2>Paste the request</h2>
+        <label for="reqText">Request received from a batchmate</label>
+        <textarea id="reqText" spellcheck="false" placeholder="Paste the complete request message here"></textarea>
+      </section>
+    </div>
+    <aside class="preview">
+      <section class="card">
+        <h2>Result</h2>
+        <div class="verdict" id="verdict">Paste a request to check it.</div>
+        <dl class="det" id="details"></dl>
+        <p class="hint" id="rosterInfo"></p>
+      </section>
+    </aside>
+  </div>
+</div>
+
+  <div class="cols ta-cols" id="viewTaBill" hidden>
+    <div class="stack">
+      <section class="card">
+        <h2>1 &middot; Employee details</h2>
+        <div class="grid">
+          <div class="field"><label for="taMonth">Month <span class="muted">(not remembered)</span></label>
+            <select id="taMonth">
+              <option value="">Select month</option>
+              <option>January</option><option>February</option><option>March</option>
+              <option>April</option><option>May</option><option>June</option>
+              <option>July</option><option>August</option><option>September</option>
+              <option>October</option><option>November</option><option>December</option>
+            </select>
+          </div>
+          <div class="field"><label for="taYear">Year</label>
+            <input id="taYear" class="mono" inputmode="numeric" maxlength="4" placeholder="YYYY" autocomplete="off">
+          </div>
+          <div class="field wide"><label for="taName">Officer name</label>
+            <input id="taName" placeholder="e.g. Prabhakar Verma" autocomplete="name">
+          </div>
+          <div class="field"><label for="taDesignation">Designation</label>
+            <input id="taDesignation" placeholder="e.g. AOM / LKO" autocomplete="off">
+          </div>
+          <div class="field"><label for="taDept">Department</label>
+            <input id="taDept" value="Operating" placeholder="e.g. Operating / Commercial" autocomplete="off">
+          </div>
+          <div class="field"><label for="taHq">Headquarters</label>
+            <input id="taHq" placeholder="e.g. LKO" autocomplete="off">
+          </div>
+          <div class="field"><label for="taPfNo">PF No. / Employee ID</label>
+            <input id="taPfNo" class="mono" placeholder="PF / HRMS ID" autocomplete="off">
+          </div>
+          <div class="field"><label for="taBillUnit">Bill Unit No.</label>
+            <input id="taBillUnit" class="mono" placeholder="e.g. 0401234" autocomplete="off">
+          </div>
+          <div class="field"><label for="taPay">Basic Pay (Rs.)</label>
+            <input id="taPay" class="mono" inputmode="numeric" placeholder="e.g. 56100" autocomplete="off">
+          </div>
+          <div class="field"><label for="taLevel">Pay Level (7th CPC)</label>
+            <select id="taLevel">
+              <option value="10">Level 10 (Rs. 1125/day)</option>
+              <option value="11">Level 11 (Rs. 1125/day)</option>
+              <option value="12">Level 12 (Rs. 1250/day)</option>
+              <option value="13">Level 13 (Rs. 1250/day)</option>
+              <option value="13A">Level 13A (Rs. 1250/day)</option>
+              <option value="14">Level 14 (Rs. 1500/day)</option>
+              <option value="15">Level 15 (Rs. 1500/day)</option>
+              <option value="9">Level 9 (Rs. 1125/day)</option>
+              <option value="8">Level 8 (Rs. 1000/day)</option>
+              <option value="7">Level 7 (Rs. 1000/day)</option>
+              <option value="6">Level 6 (Rs. 1000/day)</option>
+            </select>
+          </div>
+          <div class="field"><label for="taDailyRate">Daily TA Rate (Rs.)</label>
+            <input id="taDailyRate" class="mono" inputmode="numeric" value="1125" autocomplete="off">
+          </div>
+          <div class="field"><label for="taDoa">Date of Appointment</label>
+            <input id="taDoa" class="mono" placeholder="DD-MM-YYYY" autocomplete="off">
+          </div>
+          <div class="field"><label for="taRailway">Railway Zone</label>
+            <input id="taRailway" value="Northern Railway" autocomplete="off">
+          </div>
+          <div class="field wide"><label for="taRules">Rules by which governed</label>
+            <input id="taRules" value="Railway Servants (Travelling Allowance) Rules" autocomplete="off">
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn" id="taSaveEmpBtn">Save Employee Details</button>
+          <button type="button" class="btn alt" id="taEditEmpBtn" hidden>Edit Employee Details</button>
+        </div>
+        <p class="hint" id="taEmpLockHint">Officer details (except Month) are saved in this browser. Click Save Employee Details to lock them while entering journeys.</p>
+      </section>
+
+      <section class="card">
+        <h2>2 &middot; Journey details</h2>
+
+        <div class="pdfbox">
+          <label for="taImportPdf">Import entries from another TA bill PDF <span class="muted">(optional)</span></label>
+          <input type="file" id="taImportPdf" accept="application/pdf,.pdf">
+          <div class="status" id="taPdfStatusRow" hidden>
+            <span class="chip" id="taPdfChip">Reading TA PDF…</span>
+            <button type="button" class="linkbtn" id="taClearPdf">Clear notice</button>
+          </div>
+          <p class="hint">Extracts journey rows (date, train no., times, stations, km, day/night, object, rate) from an existing Northern Railway TA Journal PDF.</p>
+        </div>
+
+        <div class="ta-form-box" id="taEntryFormBox">
+          <div class="ta-subtabs" role="tablist" aria-label="Entry type">
+            <button type="button" id="taSubTabTravel" role="tab" aria-selected="true">Travel Entry</button>
+            <button type="button" id="taSubTabNonTravel" role="tab" aria-selected="false">Non-travel Entry</button>
+          </div>
+          <div class="ta-form-head">
+            <strong id="taFormModeLabel">New Travel Entry</strong>
+            <button type="button" class="linkbtn" id="taCancelEditBtn" hidden>Cancel edit</button>
+          </div>
+
+          <!-- Travel Entry Fields -->
+          <div class="grid" id="taTravelFields">
+            <div class="field"><label for="taJFromDate">From Date</label>
+              <input type="date" id="taJFromDate" class="mono">
+            </div>
+            <div class="field"><label for="taJToDate">To Date</label>
+              <input type="date" id="taJToDate" class="mono">
+            </div>
+            <div class="field"><label for="taJTrain">Train No. / Mode</label>
+              <input id="taJTrain" class="mono" placeholder="e.g. 12230 / Road" autocomplete="off">
+            </div>
+            <div class="field"><label for="taJLeft">Time Left</label>
+              <input type="time" id="taJLeft" class="mono">
+            </div>
+            <div class="field"><label for="taJArr">Time Arrived</label>
+              <input type="time" id="taJArr" class="mono">
+            </div>
+            <div class="field"><label for="taJFrom">Station From</label>
+              <input id="taJFrom" class="mono" placeholder="e.g. LKO" autocomplete="off">
+            </div>
+            <div class="field"><label for="taJTo">Station To</label>
+              <input id="taJTo" class="mono" placeholder="e.g. NDLS" autocomplete="off">
+            </div>
+            <div class="field"><label for="taJKm">Kilometer</label>
+              <input id="taJKm" class="mono" inputmode="numeric" placeholder="e.g. 493" autocomplete="off">
+            </div>
+            <div class="field"><label for="taJDays">No. of Days (Day/Night col.)</label>
+              <input id="taJDays" class="mono" inputmode="numeric" min="1" placeholder="e.g. 01" autocomplete="off">
+            </div>
+            <div class="field"><label for="taJSlab">TA Percentage</label>
+              <select id="taJSlab">
+                <option value="100">100% per day</option>
+                <option value="70">70% per day</option>
+                <option value="30">30% per day</option>
+                <option value="0">0% (Travel / Nil)</option>
+              </select>
+            </div>
+            <div class="field"><label for="taJRate">Rate / Total Amount (Rs.)</label>
+              <input id="taJRate" class="mono" inputmode="decimal" placeholder="Auto (Daily Rate × % × Days)" autocomplete="off">
+            </div>
+            <div class="field wide"><label for="taJObject">Object of Journey</label>
+              <input id="taJObject" placeholder="e.g. Travel to Delhi for DMRC module" autocomplete="off">
+            </div>
+          </div>
+
+          <!-- Non-travel Entry Fields (e.g. OJT / Training / Halt without travel) -->
+          <div class="grid" id="taNonTravelFields" hidden>
+            <div class="field"><label for="taNTFromDate">From Date</label>
+              <input type="date" id="taNTFromDate" class="mono">
+            </div>
+            <div class="field"><label for="taNTToDate">To Date</label>
+              <input type="date" id="taNTToDate" class="mono">
+            </div>
+            <div class="field"><label for="taNTDays">No. of Days (Day/Night col.)</label>
+              <input id="taNTDays" class="mono" inputmode="numeric" min="1" placeholder="e.g. 04" autocomplete="off">
+            </div>
+            <div class="field"><label for="taNTSlab">TA Percentage</label>
+              <select id="taNTSlab">
+                <option value="100">100% per day</option>
+                <option value="70">70% per day</option>
+                <option value="30">30% per day</option>
+              </select>
+            </div>
+            <div class="field"><label for="taNTRate">Rate / Total Amount (Rs.)</label>
+              <input id="taNTRate" class="mono" inputmode="decimal" placeholder="Auto (Daily Rate × Days)" autocomplete="off">
+            </div>
+            <div class="field wide"><label for="taNTObject">Object of Journey</label>
+              <input id="taNTObject" placeholder="e.g. OJT at New Delhi / DMRC Module / IRIDM attachment" autocomplete="off">
+            </div>
+          </div>
+
+          <div class="actions">
+            <button type="button" class="btn" id="taSaveEntryBtn">Add Travel Entry</button>
+            <button type="button" class="btn alt" id="taResetEntryBtn">Clear form</button>
+          </div>
+        </div>
+
+        <div class="ta-list-header">
+          <span class="chip" id="taCountChip">0 entries</span>
+          <button type="button" class="linkbtn" id="taClearAllEntries" hidden>Clear all journeys</button>
+        </div>
+        <div class="ta-entries" id="taEntriesList"></div>
+      </section>
+    </div>
+
+    <aside class="preview ta-preview-col">
+      <section class="card">
+        <h2>TA Bill Summary &amp; Actions</h2>
+        <div class="ta-summary-grid" id="taSummaryBox"></div>
+        <div class="grid" style="margin-top: 12px;">
+          <div class="field"><label for="taContingent">Contingent / Conveyance (Rs.)</label>
+            <input id="taContingent" class="mono" inputmode="decimal" value="0" autocomplete="off">
+          </div>
+          <div class="field"><label for="taTravelMode">Certificate Mode</label>
+            <select id="taTravelMode">
+              <option value="Rail">Rail</option>
+              <option value="Road">Road</option>
+              <option value="Air">Air</option>
+              <option value="Rail/Road">Rail/Road</option>
+            </select>
+          </div>
+        </div>
+        <div class="actions">
+          <button type="button" class="btn alt" id="taPreviewToggleBtn" aria-expanded="true">Hide TA Bill Preview</button>
+          <button type="button" class="btn" id="taDownloadPdfBtn">Download as PDF</button>
+        </div>
+        <p class="hint">Entries are automatically sorted in chronological date-wise order in the preview and PDF.</p>
+      </section>
+
+      <section class="card ta-sheet-card" id="taPreviewCard">
+        <h2>Official TA Journal Preview</h2>
+        <div class="ta-paper-scroll">
+          <div class="ta-paper" id="taPaperPreview"></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+<section class="trr-wrap" id="trainRouteSection" aria-labelledby="trainRouteHeading">
+  <div class="trr-card">
+    <h2 class="trr-heading" id="trainRouteHeading">Train Route</h2>
+    <div id="trrResults" aria-live="polite"></div>
+  </div>
+</section>
+
+<script src="app.js"></script>
+<script src="train-route.js"></script>
+<script src="ta-bill.js"></script>
+</body>
+</html>
