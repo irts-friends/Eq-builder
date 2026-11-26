@@ -2,12 +2,31 @@
   var $ = function (id) { return document.getElementById(id); };
   if (!$('viewTaBill')) return;
 
-  var EMP_STORAGE_KEY = 'ta-emp-details-v1';
+  var EMP_STORAGE_KEY = 'ta-emp-details-v2';
+  var EMP_LOCK_KEY = 'ta-emp-locked-v2';
+
   var LEVEL_RATES = {
     '6': 1000, '7': 1000, '8': 1000,
     '9': 1125, '10': 1125, '11': 1125,
     '12': 1250, '13': 1250, '13A': 1250,
     '14': 1500, '15': 1500
+  };
+
+  var EMP_DEFAULTS = {
+    taYear: '2026',
+    taName: '',
+    taDesignation: 'IRMS (Traffic) 202_',
+    taDept: 'Admin/General',
+    taHq: 'IRITM/LKO',
+    taPfNo: '0642980xxxx',
+    taBillUnit: '0306-013',
+    taPay: '',
+    taLevel: '10',
+    taDailyRate: '1125',
+    taDoa: '',
+    taRailway: 'Northern Railway (NR)',
+    taRules: 'As per Extant Rules',
+    taTravelMode: 'Rail'
   };
 
   var EMP_PERSIST_IDS = [
@@ -16,9 +35,16 @@
     'taDoa', 'taRailway', 'taRules', 'taTravelMode'
   ];
 
-  var journeys = []; // starts fresh (reset) on every page load
+  var EMP_LOCKABLE_IDS = [
+    'taMonth', 'taYear', 'taName', 'taDesignation', 'taDept', 'taHq',
+    'taPfNo', 'taBillUnit', 'taPay', 'taLevel', 'taDoa',
+    'taRailway', 'taRules'
+  ];
+
+  var journeys = [];
   var editingId = null;
-  var activeEntryType = 'travel'; // 'travel' or 'nontravel'
+  var activeEntryType = 'travel';
+  var empLocked = false;
   var previewVisible = true;
 
   function esc(s) {
@@ -29,34 +55,139 @@
       .replace(/"/g, '&quot;');
   }
 
-  // ---- Employee details persistence (all except Month) ----
+  function showValidationPopup(titleText, errorsList) {
+    if (!errorsList || !errorsList.length) return;
+    var existing = document.getElementById('taValidationModal');
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+
+    var backdrop = document.createElement('div');
+    backdrop.id = 'taValidationModal';
+    backdrop.className = 'ta-modal-backdrop';
+    backdrop.setAttribute('role', 'dialog');
+    backdrop.setAttribute('aria-modal', 'true');
+
+    var modal = document.createElement('div');
+    modal.className = 'ta-modal-card';
+
+    var h = document.createElement('h3');
+    h.className = 'ta-modal-title';
+    h.textContent = titleText || 'Please fix the following required fields';
+    modal.appendChild(h);
+
+    var ul = document.createElement('ul');
+    ul.className = 'ta-modal-list';
+    errorsList.forEach(function (msg) {
+      var li = document.createElement('li');
+      li.textContent = msg;
+      ul.appendChild(li);
+    });
+    modal.appendChild(ul);
+
+    var actions = document.createElement('div');
+    actions.className = 'actions';
+    var okBtn = document.createElement('button');
+    okBtn.type = 'button';
+    okBtn.className = 'btn';
+    okBtn.textContent = 'OK';
+    okBtn.addEventListener('click', function () {
+      if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+    });
+    actions.appendChild(okBtn);
+    modal.appendChild(actions);
+
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+    okBtn.focus();
+  }
+
+  // ---- Employee Details Validation & Persistence ----
+  function syncDailyRateFromLevel() {
+    var lvl = $('taLevel') ? $('taLevel').value : '10';
+    var rate = LEVEL_RATES[lvl] || 1125;
+    if ($('taDailyRate')) {
+      $('taDailyRate').value = String(rate);
+      $('taDailyRate').readOnly = true;
+    }
+    return rate;
+  }
+
+  function validateEmployeeDetails() {
+    var errors = [];
+    var monthVal = $('taMonth') ? $('taMonth').value.trim() : '';
+    var yearVal = $('taYear') ? $('taYear').value.trim() : '';
+    var nameVal = $('taName') ? $('taName').value.trim() : '';
+    var desigVal = $('taDesignation') ? $('taDesignation').value.trim() : '';
+    var deptVal = $('taDept') ? $('taDept').value.trim() : '';
+    var hqVal = $('taHq') ? $('taHq').value.trim() : '';
+    var pfVal = $('taPfNo') ? $('taPfNo').value.trim() : '';
+    var billUnitVal = $('taBillUnit') ? $('taBillUnit').value.trim() : '';
+    var payVal = $('taPay') ? $('taPay').value.trim() : '';
+    var levelVal = $('taLevel') ? $('taLevel').value.trim() : '';
+    var dailyRateVal = $('taDailyRate') ? $('taDailyRate').value.trim() : '';
+    var doaVal = $('taDoa') ? $('taDoa').value.trim() : '';
+    var railwayVal = $('taRailway') ? $('taRailway').value.trim() : '';
+    var rulesVal = $('taRules') ? $('taRules').value.trim() : '';
+
+    if (!monthVal) errors.push('Month is mandatory.');
+    if (!yearVal || !/^(2026|2027)$/.test(yearVal)) errors.push('Year is mandatory (select 2026 or 2027).');
+
+    if (!nameVal) {
+      errors.push('Officer name is mandatory.');
+    } else if (/\d/.test(nameVal)) {
+      errors.push('Officer name must not contain any numbers.');
+    }
+
+    if (!desigVal) errors.push('Designation is mandatory.');
+    if (!deptVal) errors.push('Department is mandatory.');
+    if (!hqVal) errors.push('Headquarters is mandatory.');
+
+    var pfDigits = pfVal.replace(/\D/g, '');
+    if (!pfVal || !/^\d+$/.test(pfVal) || pfDigits.length < 4) {
+      errors.push('PF No. / Employee ID is mandatory and must be a number (replace xxxx with your last 4 digits).');
+    }
+
+    if (!billUnitVal) errors.push('Bill Unit No. is mandatory.');
+    if (!payVal || !/^\d+(\.\d+)?$/.test(payVal) || parseFloat(payVal) <= 0) {
+      errors.push('Basic pay is mandatory and must be a valid amount.');
+    }
+    if (!levelVal) errors.push('Pay level is mandatory.');
+    if (!dailyRateVal || isNaN(parseFloat(dailyRateVal)) || parseFloat(dailyRateVal) <= 0) {
+      errors.push('Daily TA Rate is missing.');
+    }
+    if (!doaVal) errors.push('Date of Appointment is mandatory.');
+    if (!railwayVal) errors.push('Railway Zone is mandatory.');
+    if (!rulesVal) errors.push('Rules by which governed is mandatory.');
+
+    return errors;
+  }
+
   function saveEmployeeDetails() {
     var obj = {};
     EMP_PERSIST_IDS.forEach(function (id) {
       var el = $(id);
       if (el) obj[id] = el.value;
     });
+    if (obj.taYear !== '2026' && obj.taYear !== '2027') {
+      obj.taYear = '2026';
+    }
     try {
       localStorage.setItem(EMP_STORAGE_KEY, JSON.stringify(obj));
     } catch (e) {}
   }
 
-  var EMP_LOCK_KEY = 'ta-emp-locked-v1';
-  var EMP_ALL_FIELD_IDS = [
-    'taMonth', 'taYear', 'taName', 'taDesignation', 'taDept', 'taHq',
-    'taPfNo', 'taBillUnit', 'taPay', 'taLevel', 'taDailyRate',
-    'taDoa', 'taRailway', 'taRules'
-  ];
-  var empLocked = false;
-
   function applyEmployeeLockState(locked) {
     empLocked = !!locked;
-    EMP_ALL_FIELD_IDS.forEach(function (id) {
+    EMP_LOCKABLE_IDS.forEach(function (id) {
       var el = $(id);
       if (!el) return;
       if (el.tagName === 'SELECT') el.disabled = empLocked;
       else el.readOnly = empLocked;
     });
+    if ($('taDailyRate')) {
+      $('taDailyRate').readOnly = true;
+    }
     if ($('taSaveEmpBtn')) {
       $('taSaveEmpBtn').hidden = empLocked;
       $('taSaveEmpBtn').disabled = empLocked;
@@ -67,7 +198,7 @@
     if ($('taEmpLockHint')) {
       $('taEmpLockHint').textContent = empLocked
         ? 'Employee details are saved and locked. Click "Edit Employee Details" to make changes.'
-        : 'Officer details (except Month) are saved in this browser. Click "Save Employee Details" to lock them while entering journeys.';
+        : 'Month starts blank on reset; other employee details are remembered after saving.';
     }
     try {
       localStorage.setItem(EMP_LOCK_KEY, empLocked ? '1' : '0');
@@ -76,6 +207,16 @@
 
   function loadEmployeeDetails() {
     if ($('taMonth')) $('taMonth').value = '';
+    if ($('taYear')) $('taYear').value = '2026';
+    if ($('taDesignation')) $('taDesignation').value = EMP_DEFAULTS.taDesignation;
+    if ($('taDept')) $('taDept').value = EMP_DEFAULTS.taDept;
+    if ($('taHq')) $('taHq').value = EMP_DEFAULTS.taHq;
+    if ($('taPfNo')) $('taPfNo').value = EMP_DEFAULTS.taPfNo;
+    if ($('taBillUnit')) $('taBillUnit').value = EMP_DEFAULTS.taBillUnit;
+    if ($('taLevel')) $('taLevel').value = EMP_DEFAULTS.taLevel;
+    if ($('taRailway')) $('taRailway').value = EMP_DEFAULTS.taRailway;
+    if ($('taRules')) $('taRules').value = EMP_DEFAULTS.taRules;
+
     var saved = null;
     try {
       saved = JSON.parse(localStorage.getItem(EMP_STORAGE_KEY) || 'null');
@@ -83,23 +224,25 @@
 
     if (saved && typeof saved === 'object') {
       EMP_PERSIST_IDS.forEach(function (id) {
-        if (saved[id] !== undefined && $(id)) {
-          $(id).value = saved[id];
+        if (saved[id] !== undefined && saved[id] !== '' && $(id)) {
+          if (id === 'taYear') {
+            $(id).value = (saved[id] === '2026' || saved[id] === '2027') ? saved[id] : '2026';
+          } else {
+            $(id).value = saved[id];
+          }
         }
       });
     } else {
-      if ($('taYear') && !$('taYear').value) {
-        $('taYear').value = String(new Date().getFullYear());
-      }
       try {
         var eqRef = JSON.parse(localStorage.getItem('eq-ref') || 'null');
         if (eqRef) {
           var nm = eqRef.n === '__other__' ? (eqRef.o || '') : (eqRef.n || '');
-          if (nm && $('taName') && !$('taName').value) $('taName').value = nm;
-          if (eqRef.p && $('taDesignation') && !$('taDesignation').value) $('taDesignation').value = eqRef.p;
+          if (nm && !/\d/.test(nm) && $('taName') && !$('taName').value) $('taName').value = nm;
         }
       } catch (e) {}
     }
+
+    syncDailyRateFromLevel();
 
     var wasLocked = false;
     try {
@@ -110,6 +253,11 @@
 
   if ($('taSaveEmpBtn')) {
     $('taSaveEmpBtn').addEventListener('click', function () {
+      var errs = validateEmployeeDetails();
+      if (errs.length) {
+        showValidationPopup('Cannot Save Employee Details', errs);
+        return;
+      }
       saveEmployeeDetails();
       applyEmployeeLockState(true);
       renderAll();
@@ -123,12 +271,9 @@
   }
 
   $('taLevel').addEventListener('change', function () {
-    var rate = LEVEL_RATES[this.value];
-    if (rate && $('taDailyRate')) {
-      $('taDailyRate').value = String(rate);
-    }
+    syncDailyRateFromLevel();
     saveEmployeeDetails();
-    updateEntryRatePlaceholder();
+    updateEntryRateBox();
     renderAll();
   });
 
@@ -137,10 +282,12 @@
     if (!el) return;
     el.addEventListener('input', function () {
       saveEmployeeDetails();
+      updateEntryRateBox();
       renderAll();
     });
     el.addEventListener('change', function () {
       saveEmployeeDetails();
+      updateEntryRateBox();
       renderAll();
     });
   });
@@ -171,7 +318,7 @@
 
   function entrySortKey(e) {
     var d = (e.date || '9999-12-31').trim();
-    var t = e.entryType === 'nontravel' ? '00:00' : (e.timeLeft || '00:01').trim();
+    var t = (e.timeLeft || '00:00').trim();
     if (/^\d{1,2}:\d{2}$/.test(t) && t.length === 4) t = '0' + t;
     var typeOrder = e.entryType === 'nontravel' ? '0' : '1';
     return d + ' ' + t + ' ' + typeOrder;
@@ -185,15 +332,6 @@
       if (ka > kb) return 1;
       return (a._seq || 0) - (b._seq || 0);
     });
-  }
-
-  function formatJournalDate(isoDate) {
-    if (!isoDate) return '';
-    var m = isoDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-    if (!m) return isoDate;
-    var monIdx = parseInt(m[2], 10) - 1;
-    var monName = MONTH_SHORT[monIdx] || m[2];
-    return m[3] + '-' + monName;
   }
 
   function formatShortSlashDate(isoDate) {
@@ -234,11 +372,9 @@
   }
 
   function computeEntryAmount(e) {
-    if (e.customAmount !== '' && e.customAmount !== null && !isNaN(parseFloat(e.customAmount))) {
-      return Math.max(0, parseFloat(e.customAmount));
-    }
-    var daily = parseFloat($('taDailyRate').value) || 0;
-    var pct = parseFloat(e.slab) || 0;
+    var daily = syncDailyRateFromLevel();
+    var pct = parseFloat(e.slab);
+    if (isNaN(pct)) pct = 100;
     var days = getEntryDayCount(e);
     return Math.round((daily * (pct / 100) * days) * 100) / 100;
   }
@@ -300,7 +436,7 @@
   }
 
   function computeSummary(sortedList) {
-    var dailyRate = parseFloat($('taDailyRate').value) || 0;
+    var dailyRate = syncDailyRateFromLevel();
     var c30 = 0, c70 = 0, c100 = 0;
     var amt30 = 0, amt70 = 0, amt100 = 0, amtOther = 0;
 
@@ -338,7 +474,7 @@
     };
   }
 
-  // ---- Sub-tabs: Add Travel Entry vs Add Non-travel Entry ----
+  // ---- Sub-tabs: Travel Entry vs Non-travel Entry ----
   function switchEntrySubTab(type) {
     activeEntryType = type === 'nontravel' ? 'nontravel' : 'travel';
     var isTravel = activeEntryType === 'travel';
@@ -353,7 +489,7 @@
       $('taFormModeLabel').textContent = isTravel ? 'New Travel Entry' : 'New Non-travel Entry';
       $('taSaveEntryBtn').textContent = isTravel ? 'Add Travel Entry' : 'Add Non-travel Entry';
     }
-    updateEntryRatePlaceholder();
+    updateEntryRateBox();
   }
 
   $('taSubTabTravel').addEventListener('click', function () {
@@ -366,7 +502,6 @@
     else switchEntrySubTab('nontravel');
   });
 
-  // Auto-calculate inclusive days when From Date or To Date changes in Travel tab
   function autoFillTravelDays() {
     var fromVal = $('taJFromDate').value;
     var toVal = $('taJToDate').value;
@@ -378,15 +513,9 @@
     } else if (fromVal && !$('taJDays').value) {
       $('taJDays').value = '01';
     }
-    updateEntryRatePlaceholder();
+    updateEntryRateBox();
   }
 
-  $('taJFromDate').addEventListener('change', autoFillTravelDays);
-  $('taJToDate').addEventListener('change', autoFillTravelDays);
-  $('taJDays').addEventListener('input', updateEntryRatePlaceholder);
-  $('taJSlab').addEventListener('change', updateEntryRatePlaceholder);
-
-  // Auto-calculate inclusive days when From Date or To Date changes in Non-travel tab
   function autoFillNonTravelDays() {
     var fromVal = $('taNTFromDate').value;
     var toVal = $('taNTToDate').value;
@@ -398,38 +527,45 @@
     } else if (fromVal && !$('taNTDays').value) {
       $('taNTDays').value = '01';
     }
-    updateEntryRatePlaceholder();
+    updateEntryRateBox();
   }
+
+  $('taJFromDate').addEventListener('change', autoFillTravelDays);
+  $('taJToDate').addEventListener('change', autoFillTravelDays);
+  $('taJDays').addEventListener('input', updateEntryRateBox);
+  $('taJSlab').addEventListener('change', updateEntryRateBox);
 
   $('taNTFromDate').addEventListener('change', autoFillNonTravelDays);
   $('taNTToDate').addEventListener('change', autoFillNonTravelDays);
-  $('taNTDays').addEventListener('input', updateEntryRatePlaceholder);
-  $('taNTSlab').addEventListener('change', updateEntryRatePlaceholder);
+  $('taNTDays').addEventListener('input', updateEntryRateBox);
+  $('taNTSlab').addEventListener('change', updateEntryRateBox);
 
-  // ---- Add / Edit Journey Form (Single Shared Form for Both Types) ----
-  function updateEntryRatePlaceholder() {
-    var daily = parseFloat($('taDailyRate').value) || 0;
+  function updateEntryRateBox() {
+    var daily = syncDailyRateFromLevel();
     if (activeEntryType === 'nontravel') {
-      var pctNT = parseFloat($('taNTSlab').value) || 0;
-      var daysNT = parseFloat($('taNTDays').value) || 1;
-      var autoNT = Math.round((daily * (pctNT / 100) * daysNT) * 100) / 100;
-      $('taNTRate').placeholder = buildRateFormulaString(daily, pctNT, daysNT, autoNT);
+      var pctNT = parseFloat($('taNTSlab').value);
+      if (isNaN(pctNT)) pctNT = 100;
+      var daysNT = parseFloat($('taNTDays').value) || 0;
+      var amtNT = Math.round((daily * (pctNT / 100) * daysNT) * 100) / 100;
+      $('taNTRate').readOnly = true;
+      $('taNTRate').value = daysNT > 0 ? buildRateFormulaString(daily, pctNT, daysNT, amtNT) : '';
     } else {
-      var pctT = parseFloat($('taJSlab').value) || 0;
-      var daysT = parseFloat($('taJDays').value) || 1;
-      var autoT = Math.round((daily * (pctT / 100) * daysT) * 100) / 100;
-      $('taJRate').placeholder = buildRateFormulaString(daily, pctT, daysT, autoT);
+      var pctT = parseFloat($('taJSlab').value);
+      if (isNaN(pctT)) pctT = 100;
+      var daysT = parseFloat($('taJDays').value) || 0;
+      var amtT = Math.round((daily * (pctT / 100) * daysT) * 100) / 100;
+      $('taJRate').readOnly = true;
+      $('taJRate').value = daysT > 0 ? buildRateFormulaString(daily, pctT, daysT, amtT) : '';
     }
   }
 
-  $('taDailyRate').addEventListener('input', updateEntryRatePlaceholder);
-
+  // ---- Reset Form (fills default values) ----
   function resetEntryForm(preserveTabType) {
     editingId = null;
     $('taCancelEditBtn').hidden = true;
     $('taEntryFormBox').classList.remove('is-editing');
 
-    // Reset Travel fields
+    // Travel defaults
     $('taJFromDate').value = '';
     $('taJToDate').value = '';
     $('taJTrain').value = '';
@@ -443,7 +579,7 @@
     $('taJRate').value = '';
     $('taJObject').value = '';
 
-    // Reset Non-travel fields
+    // Non-travel defaults
     $('taNTFromDate').value = '';
     $('taNTToDate').value = '';
     $('taNTDays').value = '';
@@ -478,7 +614,6 @@
       $('taNTToDate').value = item.toDate || item.date || '';
       $('taNTDays').value = item.daysCount ? padTwoDigits(item.daysCount) : '';
       $('taNTSlab').value = item.slab !== undefined ? String(item.slab) : '100';
-      $('taNTRate').value = item.customAmount !== '' && item.customAmount != null ? String(item.customAmount) : '';
       $('taNTObject').value = item.object || '';
     } else {
       $('taJFromDate').value = item.date || '';
@@ -491,10 +626,9 @@
       $('taJKm').value = item.km || '';
       $('taJDays').value = item.daysCount ? padTwoDigits(item.daysCount) : '01';
       $('taJSlab').value = item.slab !== undefined ? String(item.slab) : '100';
-      $('taJRate').value = item.customAmount !== '' && item.customAmount != null ? String(item.customAmount) : '';
       $('taJObject').value = item.object || '';
     }
-    updateEntryRatePlaceholder();
+    updateEntryRateBox();
 
     try {
       $('taEntryFormBox').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -507,22 +641,62 @@
     renderAll();
   }
 
+  function validateCurrentEntryForm() {
+    var errs = [];
+    if (activeEntryType === 'nontravel') {
+      var ntFrom = $('taNTFromDate').value.trim();
+      var ntTo = $('taNTToDate').value.trim();
+      var ntDays = parseFloat($('taNTDays').value);
+      var ntSlab = $('taNTSlab').value.trim();
+      var ntObj = $('taNTObject').value.trim();
+
+      if (!ntFrom) errs.push('From Date is mandatory for Non-travel Entry.');
+      if (!ntTo) errs.push('To Date is mandatory for Non-travel Entry.');
+      if (ntFrom && ntTo && ntTo < ntFrom) errs.push('To Date cannot be earlier than From Date.');
+      if (isNaN(ntDays) || ntDays <= 0) errs.push('No. Of Days is mandatory and must be greater than 0.');
+      if (!ntSlab) errs.push('TA Percentage is mandatory.');
+      if (!ntObj) errs.push('Object of Journey is mandatory.');
+    } else {
+      var jFromDate = $('taJFromDate').value.trim();
+      var jToDate = $('taJToDate').value.trim();
+      var jTrain = $('taJTrain').value.trim();
+      var jLeft = $('taJLeft').value.trim();
+      var jArr = $('taJArr').value.trim();
+      var jFrom = $('taJFrom').value.trim();
+      var jTo = $('taJTo').value.trim();
+      var jDays = parseFloat($('taJDays').value);
+      var jSlab = $('taJSlab').value.trim();
+      var jObj = $('taJObject').value.trim();
+
+      if (!jFromDate) errs.push('From Date is mandatory for Travel Entry.');
+      if (!jToDate) errs.push('To Date is mandatory for Travel Entry.');
+      if (jFromDate && jToDate && jToDate < jFromDate) errs.push('To Date cannot be earlier than From Date.');
+      if (!jTrain) errs.push('Train No./ Mode is mandatory.');
+      if (!jLeft) errs.push('Departure Time is mandatory.');
+      if (!jArr) errs.push('Arrival Time is mandatory.');
+      if (!jFrom) errs.push('Station From is mandatory.');
+      if (!jTo) errs.push('Station To is mandatory.');
+      if (isNaN(jDays) || jDays <= 0) errs.push('No. Of Days is mandatory and must be greater than 0.');
+      if (!jSlab) errs.push('TA Percentage is mandatory.');
+      if (!jObj) errs.push('Object of Journey is mandatory.');
+    }
+    return errs;
+  }
+
   $('taSaveEntryBtn').addEventListener('click', function () {
+    var errs = validateCurrentEntryForm();
+    if (errs.length) {
+      showValidationPopup(activeEntryType === 'nontravel' ? 'Non-travel Entry Validation' : 'Travel Entry Validation', errs);
+      return;
+    }
+
     var entryData;
     var refDateForMonth = '';
 
     if (activeEntryType === 'nontravel') {
       var fromDateVal = $('taNTFromDate').value.trim();
       var toDateVal = $('taNTToDate').value.trim() || fromDateVal;
-      if (!fromDateVal) {
-        $('taNTFromDate').focus();
-        return;
-      }
-      var daysNum = parseFloat($('taNTDays').value);
-      if (isNaN(daysNum) || daysNum <= 0) {
-        daysNum = calcInclusiveDays(fromDateVal, toDateVal) || 1;
-      }
-      var rawNTRate = $('taNTRate').value.trim();
+      var daysNum = parseFloat($('taNTDays').value) || calcInclusiveDays(fromDateVal, toDateVal) || 1;
       entryData = {
         id: editingId || ('ta_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
         _seq: journeys.length + 1,
@@ -538,22 +712,13 @@
         km: '',
         dayNight: padTwoDigits(daysNum),
         slab: $('taNTSlab').value,
-        customAmount: rawNTRate !== '' && !isNaN(parseFloat(rawNTRate)) ? parseFloat(rawNTRate) : '',
         object: $('taNTObject').value.trim()
       };
       refDateForMonth = fromDateVal;
     } else {
       var jFromDateVal = $('taJFromDate').value.trim();
       var jToDateVal = $('taJToDate').value.trim() || jFromDateVal;
-      if (!jFromDateVal) {
-        $('taJFromDate').focus();
-        return;
-      }
-      var jDaysNum = parseFloat($('taJDays').value);
-      if (isNaN(jDaysNum) || jDaysNum <= 0) {
-        jDaysNum = calcInclusiveDays(jFromDateVal, jToDateVal) || 1;
-      }
-      var rawRate = $('taJRate').value.trim();
+      var jDaysNum = parseFloat($('taJDays').value) || calcInclusiveDays(jFromDateVal, jToDateVal) || 1;
       entryData = {
         id: editingId || ('ta_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
         _seq: journeys.length + 1,
@@ -569,7 +734,6 @@
         km: $('taJKm').value.trim(),
         dayNight: padTwoDigits(jDaysNum),
         slab: $('taJSlab').value,
-        customAmount: rawRate !== '' && !isNaN(parseFloat(rawRate)) ? parseFloat(rawRate) : '',
         object: $('taJObject').value.trim()
       };
       refDateForMonth = jFromDateVal;
@@ -611,41 +775,31 @@
   function parseTaDateToken(tok, defaultYear, defaultMonthNum) {
     var s = String(tok || '').trim();
     if (!s) return '';
-    // DD/MM/YY or DD-MM-YY
     var m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{2})$/);
     if (m) {
       var fullYr = parseInt(m[3], 10) < 70 ? ('20' + ('0' + m[3]).slice(-2)) : ('19' + ('0' + m[3]).slice(-2));
       return fullYr + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
     }
-    // DD-MM-YYYY or DD/MM/YYYY
     m = s.match(/^(\d{1,2})[-\/](\d{1,2})[-\/](\d{4})$/);
     if (m) {
       return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
     }
-    // DD-Mon-YYYY or DD Mon YYYY
     m = s.match(/^(\d{1,2})[-\/\s]([A-Za-z]{3,9})[-\/\s](\d{4})$/);
     if (m && MONTH_MAP[m[2].toLowerCase()]) {
       return m[3] + '-' + ('0' + MONTH_MAP[m[2].toLowerCase()]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
     }
-    // DD-Mon or Mon-DD
     m = s.match(/^(\d{1,2})[-\/\s]([A-Za-z]{3,9})$/);
     if (m && MONTH_MAP[m[2].toLowerCase()]) {
-      var yr = defaultYear || String(new Date().getFullYear());
+      var yr = defaultYear || '2026';
       return yr + '-' + ('0' + MONTH_MAP[m[2].toLowerCase()]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
     }
-    m = s.match(/^([A-Za-z]{3,9})[-\/\s](\d{1,2})$/);
-    if (m && MONTH_MAP[m[1].toLowerCase()]) {
-      var yr2 = defaultYear || String(new Date().getFullYear());
-      return yr2 + '-' + ('0' + MONTH_MAP[m[1].toLowerCase()]).slice(-2) + '-' + ('0' + m[2]).slice(-2);
-    }
-    // DD/MM
     m = s.match(/^(\d{1,2})[-\/](\d{1,2})$/);
     if (m) {
-      var yr3 = defaultYear || String(new Date().getFullYear());
+      var yr3 = defaultYear || '2026';
       return yr3 + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
     }
     if (/^\d{1,2}$/.test(s) && defaultMonthNum) {
-      var yr4 = defaultYear || String(new Date().getFullYear());
+      var yr4 = defaultYear || '2026';
       return yr4 + '-' + ('0' + defaultMonthNum).slice(-2) + '-' + ('0' + s).slice(-2);
     }
     return '';
@@ -687,18 +841,16 @@
       fullText += out.join('') + '\n';
     }
 
-    var detectedYear = $('taYear').value.trim() || String(new Date().getFullYear());
+    var detectedYear = ($('taYear') && $('taYear').value.trim()) || '2026';
     var detectedMonthNum = '';
     var ym = fullText.match(/month\s*([A-Za-z]{3,9})[\s\.\-]*year\s*(\d{4})/i) ||
              fullText.match(/allowance\s+for\s+month\s*([A-Za-z]{3,9})[\s\.\-]*(\d{4})/i);
     if (ym) {
       if (MONTH_MAP[ym[1].toLowerCase()]) detectedMonthNum = MONTH_MAP[ym[1].toLowerCase()];
-      detectedYear = ym[2];
+      if (ym[2] === '2026' || ym[2] === '2027') detectedYear = ym[2];
     }
 
-    var pdfDailyRate = parseFloat($('taDailyRate').value) || 1125;
-    var rateMatch = fullText.match(/\b(800|900|1000|1125|1200)\s*[x×\*]\s*\d+/i);
-    if (rateMatch) pdfDailyRate = parseFloat(rateMatch[1]);
+    var pdfDailyRate = syncDailyRateFromLevel();
 
     function colBucket(x) {
       if (x < 82) return 0;
@@ -760,7 +912,6 @@
         var hasContent = cols[1] || cols[4] || cols[5] || cols[7] || cols[8] || cols[9];
         if (!hasContent) return;
 
-        // Parse Rate column: handles both formula text ("Rs. 1125 × 100% × 4 = 4500") and plain digits ("4500")
         var rateColText = (cols[9] || '').trim();
         var eqMatch = rateColText.match(/=\s*([\d.]+)/);
         var rsVal = eqMatch
@@ -775,7 +926,6 @@
         }
 
         var slab = '100';
-        var customAmt = '';
         var pctInFormula = rateColText.match(/(\d+(?:\.\d+)?)\s*%/);
         if (pctInFormula && (pctInFormula[1] === '100' || pctInFormula[1] === '70' || pctInFormula[1] === '30' || pctInFormula[1] === '0')) {
           slab = pctInFormula[1];
@@ -785,9 +935,6 @@
           var perDay = totalAmt / dnDays;
           var ratio = Math.round((perDay / pdfDailyRate) * 100);
           if (ratio === 100 || ratio === 70 || ratio === 30) slab = String(ratio);
-          else customAmt = totalAmt;
-        } else {
-          customAmt = totalAmt;
         }
 
         var isNonTravel = !cols[1] && !cols[2] && !cols[3] && !cols[4] && !cols[5];
@@ -807,7 +954,6 @@
           km: isNonTravel ? '' : (cols[6] || '').replace(/[^\d.]/g, ''),
           dayNight: padTwoDigits(dnDays),
           slab: slab,
-          customAmount: customAmt,
           object: (cols[8] || '').trim()
         });
       });
@@ -857,15 +1003,16 @@
     clearAllBtn.hidden = sortedList.length === 0;
 
     if (!sortedList.length) {
-      box.innerHTML = '<p class="hint">No entries added yet. Use "Add Travel Entry" or "Add Non-travel Entry" above, or import from an existing TA bill PDF.</p>';
+      box.innerHTML = '<p class="hint">No entries added yet. Use "Travel Entry" or "Non-travel Entry" above, or import from an existing TA bill PDF.</p>';
       return;
     }
 
     box.innerHTML = '';
     sortedList.forEach(function (e, idx) {
       var amt = computeEntryAmount(e);
-      var daily = parseFloat($('taDailyRate').value) || 0;
-      var pct = parseFloat(e.slab) || 0;
+      var daily = syncDailyRateFromLevel();
+      var pct = parseFloat(e.slab);
+      if (isNaN(pct)) pct = 100;
       var days = getEntryDayCount(e);
       var calcFormula = buildRateFormulaString(daily, pct, days, amt);
       var isNT = e.entryType === 'nontravel';
@@ -897,9 +1044,9 @@
       top.appendChild(badge);
       card.appendChild(top);
 
-      var metaBits = ['Days: ' + padTwoDigits(days)];
+      var metaBits = ['No. Of Days: ' + padTwoDigits(days)];
       if (!isNT) {
-        if (e.train) metaBits.push('Train: ' + e.train);
+        if (e.train) metaBits.push('Train/Mode: ' + e.train);
         if (e.timeLeft || e.timeArr) metaBits.push((e.timeLeft || '--:--') + ' to ' + (e.timeArr || '--:--'));
         if (e.km) metaBits.push(e.km + ' km');
       }
@@ -970,8 +1117,9 @@
   function buildJournalRowHtml(e) {
     var amt = computeEntryAmount(e);
     var rp = splitRsPaise(amt);
-    var daily = parseFloat($('taDailyRate').value) || 0;
-    var pct = parseFloat(e.slab) || 0;
+    var daily = syncDailyRateFromLevel();
+    var pct = parseFloat(e.slab);
+    if (isNaN(pct)) pct = 100;
     var days = getEntryDayCount(e);
     var rateCellText = buildRateFormulaString(daily, pct, days, amt);
     var daysLabel = padTwoDigits(days);
@@ -1023,7 +1171,7 @@
 
   function renderPaperPreview(sortedList, sum) {
     var paper = $('taPaperPreview');
-    var railway = $('taRailway').value.trim() || 'Northern Railway';
+    var railway = $('taRailway').value.trim() || 'Northern Railway (NR)';
     var dept = $('taDept').value.trim() || '....................';
     var pfNo = $('taPfNo').value.trim() || '....................';
     var billUnit = $('taBillUnit').value.trim() || '................';
@@ -1035,7 +1183,7 @@
     var pay = $('taPay').value.trim() || '............';
     var level = $('taLevel').value.trim() || '....';
     var doa = $('taDoa').value.trim() || '..............';
-    var rules = $('taRules').value.trim() || 'Railway Servants (Travelling Allowance) Rules';
+    var rules = $('taRules').value.trim() || 'As per Extant Rules';
     var mode = $('taTravelMode').value || 'Rail';
 
     var p1Cap = 24;
@@ -1175,8 +1323,18 @@
     this.setAttribute('aria-expanded', String(previewVisible));
   });
 
-  // ---- Download as PDF ----
+  // ---- Download as PDF (Strictly checks all mandatory fields before downloading) ----
   $('taDownloadPdfBtn').addEventListener('click', function () {
+    var errors = validateEmployeeDetails();
+    if (!journeys.length) {
+      errors.push('At least one journey entry is mandatory before downloading the TA bill PDF.');
+    }
+
+    if (errors.length) {
+      showValidationPopup('Cannot Download TA Bill PDF', errors);
+      return;
+    }
+
     var wasHidden = !previewVisible;
     if (wasHidden) {
       previewVisible = true;
@@ -1188,7 +1346,7 @@
     renderAll();
 
     var month = $('taMonth').value.trim() || 'TA';
-    var year = $('taYear').value.trim() || '';
+    var year = $('taYear').value.trim() || '2026';
     var docTitle = ('TA_Journal_' + month + '_' + year).replace(/\s+/g, '_');
     var prevTitle = document.title;
 
