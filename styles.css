@@ -734,3 +734,39 @@ table.ta-summary-tbl th {
     break-before: page;
   }
 }
+
+.ta-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 20, 28, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 9999;
+}
+.ta-modal-card {
+  background: var(--surface);
+  color: var(--fg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  max-width: 460px;
+  width: 100%;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+.ta-modal-title {
+  margin: 0 0 10px;
+  font-family: var(--font-head);
+  font-size: 1.05rem;
+  color: var(--bad);
+}
+.ta-modal-list {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.ta-modal-list li {
+  margin-bottom: 4px;
+}

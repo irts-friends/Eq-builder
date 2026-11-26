@@ -174,7 +174,7 @@
       <section class="card">
         <h2>1 &middot; Employee details</h2>
         <div class="grid">
-          <div class="field"><label for="taMonth">Month <span class="muted"></span></label>
+          <div class="field"><label for="taMonth">Month <span class="muted">(mandatory)</span></label>
             <select id="taMonth">
               <option value="">Select month</option>
               <option>January</option><option>February</option><option>March</option>
@@ -183,33 +183,36 @@
               <option>October</option><option>November</option><option>December</option>
             </select>
           </div>
-          <div class="field"><label for="taYear">Year</label>
-            <input id="taYear" class="mono" inputmode="numeric" maxlength="4" placeholder="YYYY" autocomplete="off">
+          <div class="field"><label for="taYear">Year <span class="muted">(mandatory)</span></label>
+            <select id="taYear" class="mono">
+              <option value="2026" selected>2026</option>
+              <option value="2027">2027</option>
+            </select>
           </div>
-          <div class="field wide"><label for="taName">Officer name</label>
+          <div class="field wide"><label for="taName">Officer name <span class="muted">(mandatory)</span></label>
             <input id="taName" placeholder="e.g. Prabhakar Verma" autocomplete="name">
           </div>
-          <div class="field"><label for="taDesignation">Designation</label>
-            <input id="taDesignation" placeholder="e.g. AOM / LKO" autocomplete="off">
+          <div class="field"><label for="taDesignation">Designation <span class="muted">(mandatory)</span></label>
+            <input id="taDesignation" value="IRMS (Traffic) 202_" placeholder="IRMS (Traffic) 202_" autocomplete="off">
           </div>
-          <div class="field"><label for="taDept">Department</label>
-            <input id="taDept" value="Operating" placeholder="e.g. Operating / Commercial" autocomplete="off">
+          <div class="field"><label for="taDept">Department <span class="muted">(mandatory)</span></label>
+            <input id="taDept" value="Admin/General" placeholder="Admin/General" autocomplete="off">
           </div>
-          <div class="field"><label for="taHq">Headquarters</label>
-            <input id="taHq" placeholder="e.g. LKO" autocomplete="off">
+          <div class="field"><label for="taHq">Headquarters <span class="muted">(mandatory)</span></label>
+            <input id="taHq" value="IRITM/LKO" placeholder="IRITM/LKO" autocomplete="off">
           </div>
-          <div class="field"><label for="taPfNo">PF No. / Employee ID</label>
-            <input id="taPfNo" class="mono" placeholder="PF / HRMS ID" autocomplete="off">
+          <div class="field"><label for="taPfNo">PF No. / Employee ID <span class="muted">(mandatory)</span></label>
+            <input id="taPfNo" class="mono" inputmode="numeric" placeholder="0642980xxxx" value="0642980xxxx" autocomplete="off">
           </div>
-          <div class="field"><label for="taBillUnit">Bill Unit No.</label>
-            <input id="taBillUnit" class="mono" placeholder="e.g. 0401234" autocomplete="off">
+          <div class="field"><label for="taBillUnit">Bill Unit No. <span class="muted">(mandatory)</span></label>
+            <input id="taBillUnit" class="mono" value="0306-013" placeholder="0306-013" autocomplete="off">
           </div>
-          <div class="field"><label for="taPay">Basic Pay (Rs.)</label>
+          <div class="field"><label for="taPay">Basic pay <span class="muted">(mandatory)</span></label>
             <input id="taPay" class="mono" inputmode="numeric" placeholder="e.g. 56100" autocomplete="off">
           </div>
-          <div class="field"><label for="taLevel">Pay Level (7th CPC)</label>
+          <div class="field"><label for="taLevel">Pay level <span class="muted">(mandatory)</span></label>
             <select id="taLevel">
-              <option value="10">Level 10 (Rs. 1125/day)</option>
+              <option value="10" selected>Level 10 (Rs. 1125/day)</option>
               <option value="11">Level 11 (Rs. 1125/day)</option>
               <option value="12">Level 12 (Rs. 1250/day)</option>
               <option value="13">Level 13 (Rs. 1250/day)</option>
@@ -223,23 +226,40 @@
             </select>
           </div>
           <div class="field"><label for="taDailyRate">Daily TA Rate (Rs.)</label>
-            <input id="taDailyRate" class="mono" inputmode="numeric" value="1125" autocomplete="off">
+            <input id="taDailyRate" class="mono" inputmode="numeric" value="1125" readonly tabindex="-1" autocomplete="off">
           </div>
-          <div class="field"><label for="taDoa">Date of Appointment</label>
-            <input id="taDoa" class="mono" placeholder="DD-MM-YYYY" autocomplete="off">
+          <div class="field"><label for="taDoa">Date of Appointment <span class="muted">(mandatory)</span></label>
+            <input type="date" id="taDoa" class="mono">
           </div>
-          <div class="field"><label for="taRailway">Railway Zone</label>
-            <input id="taRailway" value="Northern Railway" autocomplete="off">
+          <div class="field wide"><label for="taRailway">Railway Zone <span class="muted">(mandatory)</span></label>
+            <select id="taRailway">
+              <option value="Northern Railway (NR)" selected>Northern Railway (NR)</option>
+              <option value="Central Railway (CR)">Central Railway (CR)</option>
+              <option value="Eastern Railway (ER)">Eastern Railway (ER)</option>
+              <option value="East Central Railway (ECR)">East Central Railway (ECR)</option>
+              <option value="East Coast Railway (ECoR)">East Coast Railway (ECoR)</option>
+              <option value="North Central Railway (NCR)">North Central Railway (NCR)</option>
+              <option value="North Eastern Railway (NER)">North Eastern Railway (NER)</option>
+              <option value="Northeast Frontier Railway (NFR)">Northeast Frontier Railway (NFR)</option>
+              <option value="North Western Railway (NWR)">North Western Railway (NWR)</option>
+              <option value="Southern Railway (SR)">Southern Railway (SR)</option>
+              <option value="South Central Railway (SCR)">South Central Railway (SCR)</option>
+              <option value="South Eastern Railway (SER)">South Eastern Railway (SER)</option>
+              <option value="South East Central Railway (SECR)">South East Central Railway (SECR)</option>
+              <option value="South Western Railway (SWR)">South Western Railway (SWR)</option>
+              <option value="Western Railway (WR)">Western Railway (WR)</option>
+              <option value="Metro Railway (MTP)">Metro Railway (MTP)</option>
+            </select>
           </div>
-          <div class="field wide"><label for="taRules">Rules by which governed</label>
-            <input id="taRules" value="Railway Servants (Travelling Allowance) Rules" autocomplete="off">
+          <div class="field wide"><label for="taRules">Rules by which governed <span class="muted">(mandatory)</span></label>
+            <input id="taRules" value="As per Extant Rules" placeholder="As per Extant Rules" autocomplete="off">
           </div>
         </div>
         <div class="actions">
           <button type="button" class="btn" id="taSaveEmpBtn">Save Employee Details</button>
           <button type="button" class="btn alt" id="taEditEmpBtn" hidden>Edit Employee Details</button>
         </div>
-        <p class="hint" id="taEmpLockHint">Officer details (except Month) are saved in this browser. Click Save Employee Details to lock them while entering journeys.</p>
+        <p class="hint" id="taEmpLockHint">Month starts blank on reset; other employee details are remembered after saving.</p>
       </section>
 
       <section class="card">
@@ -252,7 +272,7 @@
             <span class="chip" id="taPdfChip">Reading TA PDF…</span>
             <button type="button" class="linkbtn" id="taClearPdf">Clear notice</button>
           </div>
-          <p class="hint">Extracts journey rows (date, train no., times, stations, km, day/night, object, rate) from an existing Northern Railway TA Journal PDF.</p>
+          <p class="hint">Extracts journey rows (dates, train no., times, stations, km, days, object, rate) from an existing TA Journal PDF.</p>
         </div>
 
         <div class="ta-form-box" id="taEntryFormBox">
@@ -267,78 +287,78 @@
 
           <!-- Travel Entry Fields -->
           <div class="grid" id="taTravelFields">
-            <div class="field"><label for="taJFromDate">From Date</label>
+            <div class="field"><label for="taJFromDate">From Date <span class="muted">(mandatory)</span></label>
               <input type="date" id="taJFromDate" class="mono">
             </div>
-            <div class="field"><label for="taJToDate">To Date</label>
+            <div class="field"><label for="taJToDate">To Date <span class="muted">(mandatory)</span></label>
               <input type="date" id="taJToDate" class="mono">
             </div>
-            <div class="field"><label for="taJTrain">Train No. / Mode</label>
+            <div class="field"><label for="taJTrain">Train No./ Mode <span class="muted">(mandatory)</span></label>
               <input id="taJTrain" class="mono" placeholder="e.g. 12230 / Road" autocomplete="off">
             </div>
-            <div class="field"><label for="taJLeft">Time Left</label>
+            <div class="field"><label for="taJLeft">Departure Time <span class="muted">(mandatory)</span></label>
               <input type="time" id="taJLeft" class="mono">
             </div>
-            <div class="field"><label for="taJArr">Time Arrived</label>
+            <div class="field"><label for="taJArr">Arrival Time <span class="muted">(mandatory)</span></label>
               <input type="time" id="taJArr" class="mono">
             </div>
-            <div class="field"><label for="taJFrom">Station From</label>
+            <div class="field"><label for="taJFrom">Station From <span class="muted">(mandatory)</span></label>
               <input id="taJFrom" class="mono" placeholder="e.g. LKO" autocomplete="off">
             </div>
-            <div class="field"><label for="taJTo">Station To</label>
+            <div class="field"><label for="taJTo">Station To <span class="muted">(mandatory)</span></label>
               <input id="taJTo" class="mono" placeholder="e.g. NDLS" autocomplete="off">
             </div>
-            <div class="field"><label for="taJKm">Kilometer</label>
+            <div class="field"><label for="taJKm">Kilometre <span class="muted">(optional)</span></label>
               <input id="taJKm" class="mono" inputmode="numeric" placeholder="e.g. 493" autocomplete="off">
             </div>
-            <div class="field"><label for="taJDays">No. of Days (Day/Night col.)</label>
-              <input id="taJDays" class="mono" inputmode="numeric" min="1" placeholder="e.g. 01" autocomplete="off">
+            <div class="field"><label for="taJDays">No. Of Days <span class="muted">(mandatory)</span></label>
+              <input id="taJDays" class="mono" inputmode="numeric" min="1" placeholder="Auto from dates" autocomplete="off">
             </div>
-            <div class="field"><label for="taJSlab">TA Percentage</label>
+            <div class="field"><label for="taJSlab">TA Percentage <span class="muted">(mandatory)</span></label>
               <select id="taJSlab">
-                <option value="100">100% per day</option>
+                <option value="100" selected>100% per day</option>
                 <option value="70">70% per day</option>
                 <option value="30">30% per day</option>
                 <option value="0">0% (Travel / Nil)</option>
               </select>
             </div>
-            <div class="field"><label for="taJRate">Rate / Total Amount (Rs.)</label>
-              <input id="taJRate" class="mono" inputmode="decimal" placeholder="Auto (Daily Rate × % × Days)" autocomplete="off">
+            <div class="field"><label for="taJRate">Rate / Totol amount <span class="muted">(mandatory)</span></label>
+              <input id="taJRate" class="mono" readonly tabindex="-1" placeholder="Auto calculated" autocomplete="off">
             </div>
-            <div class="field wide"><label for="taJObject">Object of Journey</label>
-              <input id="taJObject" placeholder="e.g. Travel to Delhi for DMRC module" autocomplete="off">
+            <div class="field wide"><label for="taJObject">Object of Journey <span class="muted">(mandatory)</span></label>
+              <input id="taJObject" placeholder="e.g. Travel to Delhi for official duty" autocomplete="off">
             </div>
           </div>
 
-          <!-- Non-travel Entry Fields (e.g. OJT / Training / Halt without travel) -->
+          <!-- Non-travel Entry Fields -->
           <div class="grid" id="taNonTravelFields" hidden>
-            <div class="field"><label for="taNTFromDate">From Date</label>
+            <div class="field"><label for="taNTFromDate">From Date <span class="muted">(mandatory)</span></label>
               <input type="date" id="taNTFromDate" class="mono">
             </div>
-            <div class="field"><label for="taNTToDate">To Date</label>
+            <div class="field"><label for="taNTToDate">To Date <span class="muted">(mandatory)</span></label>
               <input type="date" id="taNTToDate" class="mono">
             </div>
-            <div class="field"><label for="taNTDays">No. of Days (Day/Night col.)</label>
-              <input id="taNTDays" class="mono" inputmode="numeric" min="1" placeholder="e.g. 04" autocomplete="off">
+            <div class="field"><label for="taNTDays">No. Of Days <span class="muted">(mandatory)</span></label>
+              <input id="taNTDays" class="mono" inputmode="numeric" min="1" placeholder="Auto from dates" autocomplete="off">
             </div>
-            <div class="field"><label for="taNTSlab">TA Percentage</label>
+            <div class="field"><label for="taNTSlab">TA Percentage <span class="muted">(mandatory)</span></label>
               <select id="taNTSlab">
-                <option value="100">100% per day</option>
+                <option value="100" selected>100% per day</option>
                 <option value="70">70% per day</option>
                 <option value="30">30% per day</option>
               </select>
             </div>
-            <div class="field"><label for="taNTRate">Rate / Total Amount (Rs.)</label>
-              <input id="taNTRate" class="mono" inputmode="decimal" placeholder="Auto (Daily Rate × Days)" autocomplete="off">
+            <div class="field"><label for="taNTRate">Rate / Totol amount <span class="muted">(mandatory)</span></label>
+              <input id="taNTRate" class="mono" readonly tabindex="-1" placeholder="Auto calculated" autocomplete="off">
             </div>
-            <div class="field wide"><label for="taNTObject">Object of Journey</label>
-              <input id="taNTObject" placeholder="e.g. OJT at New Delhi / DMRC Module / IRIDM attachment" autocomplete="off">
+            <div class="field wide"><label for="taNTObject">Object of Journey <span class="muted">(mandatory)</span></label>
+              <input id="taNTObject" placeholder="e.g. OJT at New Delhi" autocomplete="off">
             </div>
           </div>
 
           <div class="actions">
             <button type="button" class="btn" id="taSaveEntryBtn">Add Travel Entry</button>
-            <button type="button" class="btn alt" id="taResetEntryBtn">Clear form</button>
+            <button type="button" class="btn alt" id="taResetEntryBtn">Reset Form</button>
           </div>
         </div>
 
