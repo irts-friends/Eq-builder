@@ -93,6 +93,11 @@
     okBtn.textContent = 'OK';
     okBtn.addEventListener('click', function () {
       if (backdrop.parentNode) backdrop.parentNode.removeChild(backdrop);
+      var firstBad = document.querySelector('#viewTaBill .field.needs-fill input:not([readonly]), #viewTaBill .field.needs-fill select:not(:disabled)');
+      if (firstBad) {
+        try { firstBad.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+        firstBad.focus();
+      }
     });
     actions.appendChild(okBtn);
     modal.appendChild(actions);
@@ -113,8 +118,21 @@
     return rate;
   }
 
-  function validateEmployeeDetails() {
+  function setFieldError(id, hasError) {
+    var el = $(id);
+    if (!el) return;
+    var wrap = el.closest('.field');
+    if (wrap) wrap.classList.toggle('needs-fill', !!hasError);
+  }
+
+  function clearFieldErrors(ids) {
+    (ids || []).forEach(function (id) { setFieldError(id, false); });
+  }
+
+  function validateEmployeeDetails(highlight) {
     var errors = [];
+    var shouldHighlight = highlight !== false;
+
     var monthVal = $('taMonth') ? $('taMonth').value.trim() : '';
     var yearVal = $('taYear') ? $('taYear').value.trim() : '';
     var nameVal = $('taName') ? $('taName').value.trim() : '';
@@ -130,35 +148,73 @@
     var railwayVal = $('taRailway') ? $('taRailway').value.trim() : '';
     var rulesVal = $('taRules') ? $('taRules').value.trim() : '';
 
-    if (!monthVal) errors.push('Month is mandatory.');
-    if (!yearVal || !/^(2026|2027)$/.test(yearVal)) errors.push('Year is mandatory (select 2026 or 2027).');
+    var badMonth = !monthVal;
+    if (badMonth) errors.push('Month is mandatory.');
 
+    var badYear = !yearVal || !/^(2026|2027)$/.test(yearVal);
+    if (badYear) errors.push('Year is mandatory (select 2026 or 2027).');
+
+    var badName = false;
     if (!nameVal) {
+      badName = true;
       errors.push('Officer name is mandatory.');
     } else if (/\d/.test(nameVal)) {
+      badName = true;
       errors.push('Officer name must not contain any numbers.');
     }
 
-    if (!desigVal) errors.push('Designation is mandatory.');
-    if (!deptVal) errors.push('Department is mandatory.');
-    if (!hqVal) errors.push('Headquarters is mandatory.');
+    var badDesig = !desigVal;
+    if (badDesig) errors.push('Designation is mandatory.');
+
+    var badDept = !deptVal;
+    if (badDept) errors.push('Department is mandatory.');
+
+    var badHq = !hqVal;
+    if (badHq) errors.push('Headquarters is mandatory.');
 
     var pfDigits = pfVal.replace(/\D/g, '');
-    if (!pfVal || !/^\d+$/.test(pfVal) || pfDigits.length < 4) {
+    var badPf = !pfVal || !/^\d+$/.test(pfVal) || pfDigits.length < 4;
+    if (badPf) {
       errors.push('PF No. / Employee ID is mandatory and must be a number (replace xxxx with your last 4 digits).');
     }
 
-    if (!billUnitVal) errors.push('Bill Unit No. is mandatory.');
-    if (!payVal || !/^\d+(\.\d+)?$/.test(payVal) || parseFloat(payVal) <= 0) {
-      errors.push('Basic pay is mandatory and must be a valid amount.');
+    var badBillUnit = !billUnitVal;
+    if (badBillUnit) errors.push('Bill Unit No. is mandatory.');
+
+    var badPay = !payVal || !/^\d+(\.\d+)?$/.test(payVal) || parseFloat(payVal) <= 0;
+    if (badPay) errors.push('Basic pay is mandatory and must be a valid amount.');
+
+    var badLevel = !levelVal;
+    if (badLevel) errors.push('Pay level is mandatory.');
+
+    var badDailyRate = !dailyRateVal || isNaN(parseFloat(dailyRateVal)) || parseFloat(dailyRateVal) <= 0;
+    if (badDailyRate) errors.push('Daily TA Rate is missing.');
+
+    var badDoa = !doaVal;
+    if (badDoa) errors.push('Date of Appointment is mandatory.');
+
+    var badRailway = !railwayVal;
+    if (badRailway) errors.push('Railway Zone is mandatory.');
+
+    var badRules = !rulesVal;
+    if (badRules) errors.push('Rules by which governed is mandatory.');
+
+    if (shouldHighlight) {
+      setFieldError('taMonth', badMonth);
+      setFieldError('taYear', badYear);
+      setFieldError('taName', badName);
+      setFieldError('taDesignation', badDesig);
+      setFieldError('taDept', badDept);
+      setFieldError('taHq', badHq);
+      setFieldError('taPfNo', badPf);
+      setFieldError('taBillUnit', badBillUnit);
+      setFieldError('taPay', badPay);
+      setFieldError('taLevel', badLevel);
+      setFieldError('taDailyRate', badDailyRate);
+      setFieldError('taDoa', badDoa);
+      setFieldError('taRailway', badRailway);
+      setFieldError('taRules', badRules);
     }
-    if (!levelVal) errors.push('Pay level is mandatory.');
-    if (!dailyRateVal || isNaN(parseFloat(dailyRateVal)) || parseFloat(dailyRateVal) <= 0) {
-      errors.push('Daily TA Rate is missing.');
-    }
-    if (!doaVal) errors.push('Date of Appointment is mandatory.');
-    if (!railwayVal) errors.push('Railway Zone is mandatory.');
-    if (!rulesVal) errors.push('Rules by which governed is mandatory.');
 
     return errors;
   }
@@ -587,6 +643,8 @@
     $('taNTRate').value = '';
     $('taNTObject').value = '';
 
+    clearFieldErrors(TRAVEL_FIELD_IDS);
+    clearFieldErrors(NONTRAVEL_FIELD_IDS);
     switchEntrySubTab(preserveTabType || activeEntryType || 'travel');
   }
 
@@ -641,21 +699,49 @@
     renderAll();
   }
 
-  function validateCurrentEntryForm() {
+  var TRAVEL_FIELD_IDS = [
+    'taJFromDate', 'taJToDate', 'taJTrain', 'taJLeft', 'taJArr',
+    'taJFrom', 'taJTo', 'taJDays', 'taJSlab', 'taJRate', 'taJObject'
+  ];
+  var NONTRAVEL_FIELD_IDS = [
+    'taNTFromDate', 'taNTToDate', 'taNTDays', 'taNTSlab', 'taNTRate', 'taNTObject'
+  ];
+
+  function validateCurrentEntryForm(highlight) {
     var errs = [];
+    var shouldHighlight = highlight !== false;
+
     if (activeEntryType === 'nontravel') {
       var ntFrom = $('taNTFromDate').value.trim();
       var ntTo = $('taNTToDate').value.trim();
       var ntDays = parseFloat($('taNTDays').value);
       var ntSlab = $('taNTSlab').value.trim();
+      var ntRate = $('taNTRate').value.trim();
       var ntObj = $('taNTObject').value.trim();
 
-      if (!ntFrom) errs.push('From Date is mandatory for Non-travel Entry.');
+      var badNtFrom = !ntFrom;
+      var badNtTo = !ntTo || (!!ntFrom && !!ntTo && ntTo < ntFrom);
+      var badNtDays = isNaN(ntDays) || ntDays <= 0;
+      var badNtSlab = !ntSlab;
+      var badNtRate = !ntRate;
+      var badNtObj = !ntObj;
+
+      if (badNtFrom) errs.push('From Date is mandatory for Non-travel Entry.');
       if (!ntTo) errs.push('To Date is mandatory for Non-travel Entry.');
-      if (ntFrom && ntTo && ntTo < ntFrom) errs.push('To Date cannot be earlier than From Date.');
-      if (isNaN(ntDays) || ntDays <= 0) errs.push('No. Of Days is mandatory and must be greater than 0.');
-      if (!ntSlab) errs.push('TA Percentage is mandatory.');
-      if (!ntObj) errs.push('Object of Journey is mandatory.');
+      else if (ntFrom && ntTo < ntFrom) errs.push('To Date cannot be earlier than From Date.');
+      if (badNtDays) errs.push('No. Of Days is mandatory and must be greater than 0.');
+      if (badNtSlab) errs.push('TA Percentage is mandatory.');
+      if (badNtRate) errs.push('Rate / Totol amount is mandatory.');
+      if (badNtObj) errs.push('Object of Journey is mandatory.');
+
+      if (shouldHighlight) {
+        setFieldError('taNTFromDate', badNtFrom);
+        setFieldError('taNTToDate', badNtTo);
+        setFieldError('taNTDays', badNtDays);
+        setFieldError('taNTSlab', badNtSlab);
+        setFieldError('taNTRate', badNtRate);
+        setFieldError('taNTObject', badNtObj);
+      }
     } else {
       var jFromDate = $('taJFromDate').value.trim();
       var jToDate = $('taJToDate').value.trim();
@@ -666,19 +752,47 @@
       var jTo = $('taJTo').value.trim();
       var jDays = parseFloat($('taJDays').value);
       var jSlab = $('taJSlab').value.trim();
+      var jRate = $('taJRate').value.trim();
       var jObj = $('taJObject').value.trim();
 
-      if (!jFromDate) errs.push('From Date is mandatory for Travel Entry.');
+      var badJFromDate = !jFromDate;
+      var badJToDate = !jToDate || (!!jFromDate && !!jToDate && jToDate < jFromDate);
+      var badJTrain = !jTrain;
+      var badJLeft = !jLeft;
+      var badJArr = !jArr;
+      var badJFrom = !jFrom;
+      var badJTo = !jTo;
+      var badJDays = isNaN(jDays) || jDays <= 0;
+      var badJSlab = !jSlab;
+      var badJRate = !jRate;
+      var badJObj = !jObj;
+
+      if (badJFromDate) errs.push('From Date is mandatory for Travel Entry.');
       if (!jToDate) errs.push('To Date is mandatory for Travel Entry.');
-      if (jFromDate && jToDate && jToDate < jFromDate) errs.push('To Date cannot be earlier than From Date.');
-      if (!jTrain) errs.push('Train No./ Mode is mandatory.');
-      if (!jLeft) errs.push('Departure Time is mandatory.');
-      if (!jArr) errs.push('Arrival Time is mandatory.');
-      if (!jFrom) errs.push('Station From is mandatory.');
-      if (!jTo) errs.push('Station To is mandatory.');
-      if (isNaN(jDays) || jDays <= 0) errs.push('No. Of Days is mandatory and must be greater than 0.');
-      if (!jSlab) errs.push('TA Percentage is mandatory.');
-      if (!jObj) errs.push('Object of Journey is mandatory.');
+      else if (jFromDate && jToDate < jFromDate) errs.push('To Date cannot be earlier than From Date.');
+      if (badJTrain) errs.push('Train No./ Mode is mandatory.');
+      if (badJLeft) errs.push('Departure Time is mandatory.');
+      if (badJArr) errs.push('Arrival Time is mandatory.');
+      if (badJFrom) errs.push('Station From is mandatory.');
+      if (badJTo) errs.push('Station To is mandatory.');
+      if (badJDays) errs.push('No. Of Days is mandatory and must be greater than 0.');
+      if (badJSlab) errs.push('TA Percentage is mandatory.');
+      if (badJRate) errs.push('Rate / Totol amount is mandatory.');
+      if (badJObj) errs.push('Object of Journey is mandatory.');
+
+      if (shouldHighlight) {
+        setFieldError('taJFromDate', badJFromDate);
+        setFieldError('taJToDate', badJToDate);
+        setFieldError('taJTrain', badJTrain);
+        setFieldError('taJLeft', badJLeft);
+        setFieldError('taJArr', badJArr);
+        setFieldError('taJFrom', badJFrom);
+        setFieldError('taJTo', badJTo);
+        setFieldError('taJDays', badJDays);
+        setFieldError('taJSlab', badJSlab);
+        setFieldError('taJRate', badJRate);
+        setFieldError('taJObject', badJObj);
+      }
     }
     return errs;
   }
@@ -1436,6 +1550,33 @@
       try { printWin.close(); } catch (x) {}
       triggerSamePagePrint();
     }
+  });
+
+  // Clear field error highlight live when user fills/updates a highlighted field
+  EMP_LOCKABLE_IDS.concat(['taDailyRate']).forEach(function (id) {
+    var el = $(id);
+    if (!el) return;
+    el.addEventListener('input', function () {
+      var wrap = el.closest('.field');
+      if (wrap && wrap.classList.contains('needs-fill')) validateEmployeeDetails(true);
+    });
+    el.addEventListener('change', function () {
+      var wrap = el.closest('.field');
+      if (wrap && wrap.classList.contains('needs-fill')) validateEmployeeDetails(true);
+    });
+  });
+
+  TRAVEL_FIELD_IDS.concat(NONTRAVEL_FIELD_IDS).forEach(function (id) {
+    var el = $(id);
+    if (!el) return;
+    el.addEventListener('input', function () {
+      var wrap = el.closest('.field');
+      if (wrap && wrap.classList.contains('needs-fill')) validateCurrentEntryForm(true);
+    });
+    el.addEventListener('change', function () {
+      var wrap = el.closest('.field');
+      if (wrap && wrap.classList.contains('needs-fill')) validateCurrentEntryForm(true);
+    });
   });
 
   // ---- Initialize ----
